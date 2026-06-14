@@ -19,9 +19,9 @@ import time
 import urllib.request
 import urllib.parse
 
-API_BASE = "https://www.foodsafetykorea.go.kr/api"
-SERVICE  = "I2790"   # 식품영양성분DB (~2023)
-PAGE_SIZE = 1000
+API_BASE  = "https://apis.data.go.kr/1471000/FoodNtrCpntDbInfo02"
+OPERATION = "getFoodNtrCpntDbInq02"
+PAGE_SIZE = 100
 
 # 가공식품 제외 키워드
 EXCLUDE_KEYWORDS = [
@@ -77,8 +77,14 @@ CARBON_DEFAULTS = {
 }
 
 
-def fetch_page(api_key: str, start: int, end: int) -> dict:
-    url = f"{API_BASE}/{urllib.parse.quote(api_key)}/{SERVICE}/json/{start}/{end}"
+def fetch_page(api_key: str, page_no: int) -> dict:
+    params = urllib.parse.urlencode({
+        "serviceKey": api_key,
+        "pageNo":     page_no,
+        "numOfRows":  PAGE_SIZE,
+        "type":       "json",
+    })
+    url = f"{API_BASE}/{OPERATION}?{params}"
     with urllib.request.urlopen(url, timeout=10) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
@@ -107,40 +113,41 @@ def main():
     api_key = sys.argv[1]
     print(f"[INFO] API 키: {api_key[:6]}***")
 
-    # 전체 건수 확인
+    # 1페이지로 전체 건수 확인
     try:
-        data = fetch_page(api_key, 1, 1)
+        data = fetch_page(api_key, 1)
     except Exception as e:
         print(f"[ERROR] API 연결 실패: {e}")
         sys.exit(1)
 
-    service_data = data.get(SERVICE, {})
-    total = int(service_data.get("total_count", 0))
+    body  = data.get("response", {}).get("body", {})
+    total = int(body.get("totalCount", 0))
     print(f"[INFO] 전체 데이터: {total:,}건")
 
-    rows      = []
-    seen      = set()
-    page_num  = 0
+    rows     = []
+    seen     = set()
+    page_no  = 1
+    total_pages = -(-total // PAGE_SIZE)  # ceil division
 
-    while True:
-        start = page_num * PAGE_SIZE + 1
-        end   = start + PAGE_SIZE - 1
-        if start > total:
-            break
-
-        print(f"[FETCH] {start}~{end} ...", end=" ", flush=True)
+    while page_no <= total_pages:
+        print(f"[FETCH] {page_no}/{total_pages} 페이지 ...", end=" ", flush=True)
         try:
-            data = fetch_page(api_key, start, end)
+            data = fetch_page(api_key, page_no)
         except Exception as e:
             print(f"실패 ({e}), 재시도 중...")
             time.sleep(2)
             continue
 
-        items = data.get(SERVICE, {}).get("row", [])
+        items_wrap = data.get("response", {}).get("body", {}).get("items", {})
+        # 단건일 때 dict, 복수일 때 list
+        items = items_wrap.get("item", [])
+        if isinstance(items, dict):
+            items = [items]
+
         count = 0
         for item in items:
-            name  = item.get("FOOD_NM_KR", "").strip()
-            group = item.get("FOOD_GROUP", "").strip()
+            name  = (item.get("FOOD_NM_KR") or item.get("FOOD_NM") or "").strip()
+            group = (item.get("FOOD_CATEGRY_NM") or item.get("FOOD_GROUP") or "").strip()
 
             if not name or name in seen:
                 continue
@@ -155,7 +162,7 @@ def main():
             count += 1
 
         print(f"수집 {count}건 (누적 {len(rows)}건)")
-        page_num += 1
+        page_no += 1
         time.sleep(0.3)   # API 호출 간격
 
     # SQL 파일 출력
