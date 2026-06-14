@@ -1,0 +1,6 @@
+.omc/
+*.laccdb
+*.tmp
+__pycache__/
+*.pyc
+.env

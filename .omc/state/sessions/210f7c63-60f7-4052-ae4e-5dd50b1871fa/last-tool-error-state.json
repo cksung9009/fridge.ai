@@ -1,7 +1,0 @@
-{
-  "tool_name": "PowerShell",
-  "tool_input_preview": "{\"command\":\"python -c \\\"\\nimport urllib.request, urllib.parse, json, sys\\nsys.stdout.reconfigure(encoding='utf-8')\\n\\nkey = 'abdfef63256e718167ac94ff1232bb3f9b7fc4fc77155e68e0fb41d40055ac29'\\nparams =...",
-  "error": "Exit code 1\nTraceback (most recent call last):\r\n  File \"<string>\", line 9, in <module>\r\n    with urllib.request.urlopen(req, timeout=10) as r:\r\n         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\tnals\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\urllib\\request.py\", line 187, in urlopen\r\n    return opener.open(url, data, timeout)\r\n           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\tnals\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\urllib\\request.py\", line 493, in open\r\n   ...",
-  "timestamp": "2026-06-14T14:02:05.161Z",
-  "retry_count": 1
-}
