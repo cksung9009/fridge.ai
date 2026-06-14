@@ -1,6 +1,7 @@
 -- ============================================================
 -- fridge.ai — Demo SQL (MySQL)
 -- 목적: ERD 검증 및 핵심 쿼리 데모
+-- ERD 버전: v0.2 (purchased_at 제거, 인덱스 추가)
 -- ============================================================
 
 DROP DATABASE IF EXISTS fridge_ai;
@@ -40,11 +41,10 @@ CREATE TABLE users (
 
 CREATE TABLE user_inventory (
     id            INT AUTO_INCREMENT PRIMARY KEY,
-    user_id       INT          NOT NULL,
+    user_id       INT          NOT NULL,             -- MVP: guest=1 고정
     ingredient_id INT          NOT NULL,
     quantity      DECIMAL(8,2) NOT NULL,
     unit          VARCHAR(20)  NOT NULL,
-    purchased_at  DATE         NOT NULL,
     expires_at    DATE         NOT NULL,
     status        ENUM('active','used','wasted') NOT NULL DEFAULT 'active',
     created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -70,7 +70,17 @@ CREATE TABLE consumption_logs (
 );
 
 -- ============================================================
--- 2. 시드 데이터
+-- 2. 인덱스
+-- ============================================================
+
+CREATE INDEX idx_inventory_user_status_expires
+  ON user_inventory (user_id, status, expires_at);
+
+CREATE INDEX idx_logs_user_type_date
+  ON consumption_logs (user_id, type, logged_at);
+
+-- ============================================================
+-- 3. 시드 데이터
 -- ============================================================
 
 -- 카테고리
@@ -97,20 +107,20 @@ INSERT INTO ingredients (name, category_id, default_unit, weight_per_unit_g, car
 ('간장',       5, '병', 1000.00, 0.0200),
 ('참기름',     5, '병',  500.00, 0.0300);
 
--- 데모 사용자
+-- 데모 사용자 (guest 계정 — MVP에서 user_id=1 고정)
 INSERT INTO users (email, password_hash) VALUES
-('demo@fridge.ai', '$2b$10$demohashdemohashdemohashdemohashdemohashdemohashdemo');
+('guest@fridge.ai', '$2b$10$demohashdemohashdemohashdemohashdemohashdemohashdemo');
 
 -- 냉장고 재고 (기준일: 2026-06-14 기준 D-day 설정)
-INSERT INTO user_inventory (user_id, ingredient_id, quantity, unit, purchased_at, expires_at, status) VALUES
-(1, 1,  3, '개', '2026-06-10', '2026-06-15', 'active'),  -- 감자   D-1 ⚠️
-(1, 2,  1, '개', '2026-06-10', '2026-06-16', 'active'),  -- 양파   D-2
-(1, 8,  6, '개', '2026-06-10', '2026-06-17', 'active'),  -- 달걀   D-3
-(1, 10, 1, '모', '2026-06-12', '2026-06-19', 'active'),  -- 두부   D-5
-(1, 6,  1, '팩', '2026-06-13', '2026-06-20', 'active'),  -- 돼지고기 D-6
-(1, 9,  1, '팩', '2026-06-12', '2026-06-22', 'active'),  -- 우유   D-8
-(1, 3,  2, '개', '2026-06-14', '2026-06-28', 'active'),  -- 대파   D-14
-(1, 11, 1, '병', '2026-06-01', '2026-12-31', 'active');  -- 간장   D-200
+INSERT INTO user_inventory (user_id, ingredient_id, quantity, unit, expires_at, status) VALUES
+(1, 1,  3, '개', '2026-06-15', 'active'),  -- 감자      D-1 ⚠️
+(1, 2,  1, '개', '2026-06-16', 'active'),  -- 양파      D-2
+(1, 8,  6, '개', '2026-06-17', 'active'),  -- 달걀      D-3
+(1, 10, 1, '모', '2026-06-19', 'active'),  -- 두부      D-5
+(1, 6,  1, '팩', '2026-06-20', 'active'),  -- 돼지고기  D-6
+(1, 9,  1, '팩', '2026-06-22', 'active'),  -- 우유      D-8
+(1, 3,  2, '개', '2026-06-28', 'active'),  -- 대파      D-14
+(1, 11, 1, '병', '2026-12-31', 'active');  -- 간장      D-200
 
 -- 소진 기록 (지난 30일 데모 데이터)
 -- 조리 완료 기록
@@ -126,7 +136,7 @@ VALUES
 (1, 5, 6,  'wasted', 1, '팩', 500.00, NULL,           '2026-06-08 18:00:00');  -- 돼지고기 1팩 폐기
 
 -- ============================================================
--- 3. 핵심 데모 쿼리
+-- 4. 핵심 데모 쿼리
 -- ============================================================
 
 -- -------------------------------------------------------

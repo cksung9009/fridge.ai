@@ -1,8 +1,8 @@
 # fridge.ai — ERD & Query Definition
 
-- **문서 버전:** 0.1
+- **문서 버전:** 0.2
 - **작성일:** 2026-06-14
-- **상태:** 기획 확정
+- **상태:** 기획 확정 (MVP 리뷰 반영)
 
 ---
 
@@ -77,11 +77,10 @@
 | 컬럼 | 타입 | 설명 |
 |------|------|------|
 | id | INT PK | |
-| user_id | INT FK | |
+| user_id | INT FK | MVP: guest=1 고정, 멀티유저 시 실제 ID |
 | ingredient_id | INT FK | |
 | quantity | DECIMAL(8,2) | 수량 |
 | unit | VARCHAR(20) | 개, g, ml |
-| purchased_at | DATE | 구매일 |
 | expires_at | DATE | 유통기한 |
 | status | ENUM | active / used / wasted |
 | created_at | TIMESTAMP | |
@@ -100,6 +99,23 @@
 | weight_g | DECIMAL(10,2) | quantity × weight_per_unit_g |
 | youtube_video_id | VARCHAR(20) | NULL 허용 |
 | logged_at | TIMESTAMP | |
+
+---
+
+## 인덱스
+
+```sql
+-- 재고 대시보드 핵심 쿼리 성능
+CREATE INDEX idx_inventory_user_status_expires
+  ON user_inventory (user_id, status, expires_at);
+
+-- 환경 리포트 집계 성능
+CREATE INDEX idx_logs_user_type_date
+  ON consumption_logs (user_id, type, logged_at);
+```
+
+> `status + expires_at` 복합 인덱스로 D-day 정렬 쿼리 full scan 방지.
+> `consumption_logs` 트랜잭션 정책: `user_inventory.status` 변경과 로그 INSERT는 반드시 같은 트랜잭션으로 처리.
 
 ---
 
@@ -178,6 +194,9 @@ ORDER BY i.name;
 | 무게 환산 | 마스터 기본값 사용 | 사용자 입력 부담 제거 |
 | 자주 사는 재료 | 미구현 (Phase 2) | 현 단계 범위 제외 |
 | 레시피 DB | 미보유 (YouTube API) | 저작권 리스크 없음 |
+| user_id MVP 처리 | guest=1 고정 | 데모/제출 쿼리 명확성 |
+| purchased_at | 컬럼 제거 | MVP 불필요, D-day는 expires_at만으로 계산 |
+| 인덱스 | 2개 추가 | 핵심 쿼리 full scan 방지 |
 
 ---
 
