@@ -77,7 +77,7 @@
   }
 
   /* ---- 상태 ---- */
-  var STORE_KEY = "fridge.ai.items.v3";
+  var STORE_KEY = "fridge.ai.items.v4";
   var items = load();
   var activeCat = "전체";
   var searchText = "";
@@ -104,31 +104,72 @@
       return { id: uid(), name: name, cat: MASTER[name] ? MASTER[name].cat : "기타", qty: qty, expiry: toISO(addDays(days)) };
     }
     return [
-      mk("우유",             "900mL 1팩",  0),
-      mk("두부",             "1모",         1),
-      mk("대파",             "1단",         1),
-      mk("고등어",           "2마리",        2),
-      mk("시금치",           "1단",         2),
-      mk("달걀",             "10개",        4),
-      mk("닭가슴살",         "400g",        3),
-      mk("돼지고기(삼겹살)", "500g",        3),
-      mk("애호박",           "1개",         5),
-      mk("콩나물",           "1봉",         4),
-      mk("바나나",           "3개",         3),
-      mk("감자",             "5개",         8),
-      mk("양파",             "6개",        14),
-      mk("당근",             "3개",        10),
-      mk("배추",             "1/4통",       7),
-      mk("사과",             "4개",         7),
-      mk("슬라이스치즈",     "10장",       12),
-      mk("버터",             "1팩",        25),
-      mk("떡(떡볶이용)",     "1봉",         9),
-      mk("어묵",             "1팩",         8),
-      mk("마늘",             "1통",        20),
-      mk("간장",             "1병",        60),
-      mk("고추장",           "1통",        45),
-      mk("된장",             "1통",        30),
-      mk("참기름",           "1병",        90)
+      /* ── 임박 (0-2일) ── */
+      mk("우유",             "900mL 1팩",   0),
+      mk("두부",             "1모",          1),
+      mk("대파",             "1단",          1),
+      mk("새우",             "200g",         1),
+      mk("숙주나물",         "1봉",          1),
+      mk("고등어",           "2마리",         2),
+      mk("시금치",           "1단",          2),
+      mk("상추",             "1봉",          2),
+      mk("딸기",             "1팩",          2),
+      mk("오징어",           "1마리",         2),
+      mk("바지락",           "1봉",          2),
+      mk("소고기(불고기용)", "300g",          2),
+
+      /* ── 주의 (3-5일) ── */
+      mk("달걀",             "10개",         4),
+      mk("닭가슴살",         "400g",         3),
+      mk("돼지고기(삼겹살)", "500g",         3),
+      mk("애호박",           "1개",          5),
+      mk("콩나물",           "1봉",          4),
+      mk("바나나",           "3개",          3),
+      mk("순두부",           "1팩",          3),
+      mk("팽이버섯",         "1봉",          3),
+      mk("깻잎",             "1단",          3),
+      mk("부추",             "1단",          3),
+      mk("표고버섯",         "1팩",          4),
+      mk("브로콜리",         "1개",          4),
+      mk("오이",             "3개",          4),
+      mk("쪽파",             "1단",          4),
+      mk("플레인요거트",     "2개",          5),
+      mk("파프리카",         "2개",          5),
+      mk("토마토",           "4개",          5),
+      mk("청양고추",         "10개",         5),
+      mk("포도",             "1송이",        5),
+
+      /* ── 신선 (6일+) ── */
+      mk("닭다리",           "4개",          6),
+      mk("새송이버섯",       "1팩",          6),
+      mk("방울토마토",       "1팩",          6),
+      mk("생크림",           "1팩",          6),
+      mk("감자",             "5개",          8),
+      mk("어묵",             "1팩",          8),
+      mk("떡(떡볶이용)",     "1봉",          9),
+      mk("베이컨",           "1팩",          8),
+      mk("소시지",           "1봉",         10),
+      mk("양파",             "6개",         14),
+      mk("당근",             "3개",         10),
+      mk("배추",             "1/4통",        7),
+      mk("사과",             "4개",          7),
+      mk("귤",               "8개",         10),
+      mk("무",               "1개",         12),
+      mk("슬라이스치즈",     "10장",        12),
+      mk("양배추",           "1/2통",       10),
+      mk("고구마",           "4개",         15),
+      mk("마늘",             "1통",         20),
+      mk("버터",             "1팩",         25),
+      mk("된장",             "1통",         30),
+      mk("고추장",           "1통",         45),
+      mk("간장",             "1병",         60),
+      mk("참기름",           "1병",         90),
+      mk("고춧가루",         "1봉",         60),
+      mk("소금",             "1봉",        120),
+      mk("설탕",             "1봉",        120),
+      mk("참치(캔)",         "3캔",        200),
+      mk("쌀",               "5kg",        180),
+      mk("라면",             "5개",        120),
     ];
   }
   function uid() { return Math.random().toString(36).slice(2, 9); }
@@ -221,6 +262,9 @@
   function ytUrl(q) {
     return "https://www.youtube.com/results?search_query=" + encodeURIComponent(q);
   }
+  function blogUrl(q) {
+    return "https://search.naver.com/search.naver?where=blog&query=" + encodeURIComponent(q);
+  }
 
   function scoreRecipes() {
     var RECIPES = (window.FRIDGE_RECIPES || []).concat(window.FRIDGE_RECIPES_EXT || []);
@@ -291,16 +335,20 @@
     }).join("");
     var missBadge = r.missing.length ? '<span class="tag tag-miss">+' + r.missing.length + '개 부족</span>' : "";
     var urgentBadge = r.urgentUsed.length ? '<span class="uses">임박 ' + r.urgentUsed.length + '개 소진</span>' : "";
-    var link = ytUrl(r.name + " 레시피");
-    return '<a class="reco-card" href="' + link + '" target="_blank" rel="noopener">'
+    var yt   = ytUrl(r.name + " 레시피");
+    var blog = blogUrl(r.name + " 레시피");
+    return '<div class="reco-card">'
       + '<div class="reco-thumb">' + (r.emoji || "🍳") + '</div>'
       + '<div class="reco-body">'
       + '<div class="reco-title">' + esc(r.name) + '</div>'
       + '<div class="reco-tags">' + urgentTags + warnTags + missBadge + '</div>'
-      + '<div class="reco-meta">' + urgentBadge + '<span>YouTube에서 보기</span></div>'
+      + '<div class="reco-meta">' + urgentBadge + '</div>'
+      + '<div class="reco-links">'
+      + '<a class="reco-link reco-link-yt" href="' + yt + '" target="_blank" rel="noopener">▶ YouTube</a>'
+      + '<a class="reco-link reco-link-blog" href="' + blog + '" target="_blank" rel="noopener">📝 블로그</a>'
       + '</div>'
-      + '<span class="reco-go">&#9654;</span>'
-      + '</a>';
+      + '</div>'
+      + '</div>';
   }
 
   function renderReco() {
@@ -315,8 +363,8 @@
     }
     el.recoQueryHint.textContent = "임박 재료 기반으로 " + scored.length + "가지 요리를 추천해요";
     el.recoQuery.textContent = scored[0].name;
-    el.homeReco.innerHTML = scored.slice(0,2).map(recoCardHTML).join("");
-    el.recipeList.innerHTML = scored.slice(0,12).map(recoCardHTML).join("");
+    el.homeReco.innerHTML = scored.slice(0,3).map(recoCardHTML).join("");
+    el.recipeList.innerHTML = scored.slice(0,20).map(recoCardHTML).join("");
   }
 
   function renderChips() {

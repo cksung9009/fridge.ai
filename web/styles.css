@@ -235,6 +235,20 @@ h1, h2, h3 { letter-spacing: -0.02em; }
 
 /* 레시피 카드 재료 태그 */
 .reco-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 5px; }
+
+/* 레시피 카드 링크 버튼 */
+.reco-links { display: flex; gap: 8px; margin-top: 9px; }
+.reco-link {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.78rem; font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 999px;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+.reco-link:active { opacity: 0.7; }
+.reco-link-yt   { background: #ff0000; color: #fff; }
+.reco-link-blog { background: #03c75a; color: #fff; }
 .tag {
   font-size: 0.72rem;
   font-weight: 700;
