@@ -271,8 +271,10 @@
       var d = ddayOf(it.expiry);
       return '<div class="u-card">'
         + '<div class="u-emoji">' + emojiFor(it.name) + '</div>'
+        + '<div class="u-info">'
         + '<div class="u-name">' + esc(it.name) + '</div>'
         + '<div class="u-qty">' + esc(it.qty || "") + '</div>'
+        + '</div>'
         + '<div class="u-dday"><span class="dday ' + ddayClass(d) + '">' + ddayLabel(d) + '</span></div>'
         + '</div>';
     }).join("");
