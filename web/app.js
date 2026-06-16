@@ -396,7 +396,7 @@
       el.recoQuery.textContent = "재료를 추가해 주세요";
       return;
     }
-    el.recoQueryHint.textContent = "임박 재료 기반으로 " + scored.length + "가지 요리를 추천해요";
+    el.recoQueryHint.textContent = "";
     el.recoQuery.textContent = scored[0].name;
     el.homeReco.innerHTML = scored.slice(0,3).map(recoCardHTML).join("");
     el.recipeList.innerHTML = scored.slice(0,20).map(recoCardHTML).join("");
