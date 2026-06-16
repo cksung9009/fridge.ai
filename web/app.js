@@ -270,11 +270,7 @@
     var RECIPES = (window.FRIDGE_RECIPES || []).concat(window.FRIDGE_RECIPES_EXT || []);
     if (!items.length || !RECIPES.length) return [];
 
-    /* 보유 재료: 정확한 이름 + 표준명 양쪽 등록 */
-    var ownedExact = {};
-    var ownedCanon = {};
-    var dExact = {};
-    var dCanon = {};
+    var ownedExact = {}, ownedCanon = {}, dExact = {}, dCanon = {};
     items.forEach(function(it) {
       var d = ddayOf(it.expiry);
       ownedExact[it.name] = true;
@@ -289,59 +285,96 @@
       if (dExact[n] !== undefined) return dExact[n];
       return dCanon[toCanonical(n)];
     }
+    function ingStatus(n) {
+      var d = dday(n);
+      if (d === undefined) return "fresh";
+      if (d <= 2) return "urgent";
+      if (d <= 5) return "warn";
+      return "fresh";
+    }
 
     var scored = RECIPES.map(function(dish) {
       var mainReq = dish.ingredients ? dish.ingredients.slice() : [];
       var seaReq  = dish.seasonings  ? dish.seasonings.slice()  : [];
 
-      /* 구형 포맷(seasonings 없음): ingredients에서 자동 분리 */
       if (!dish.seasonings) {
-        var autoMain = []; var autoSea = [];
-        mainReq.forEach(function(n) {
-          (isSeasoning(n) ? autoSea : autoMain).push(n);
-        });
+        var autoMain = [], autoSea = [];
+        mainReq.forEach(function(n){ (isSeasoning(n) ? autoSea : autoMain).push(n); });
         mainReq = autoMain; seaReq = autoSea;
       }
 
       var mainMatch  = mainReq.filter(owns);
       var seaMatch   = seaReq.filter(owns);
       var missing    = mainReq.filter(function(n){ return !owns(n); });
-      var urgentMain = mainMatch.filter(function(n){ var d=dday(n); return d!==undefined&&d<=2; });
-      var warnMain   = mainMatch.filter(function(n){ var d=dday(n); return d!==undefined&&d>=3&&d<=5; });
+      var urgentMain = mainMatch.filter(function(n){ return ingStatus(n) === "urgent"; });
+      var warnMain   = mainMatch.filter(function(n){ return ingStatus(n) === "warn"; });
+      var freshMain  = mainMatch.filter(function(n){ return ingStatus(n) === "fresh"; });
 
-      var mLen = Math.max(mainReq.length, 1);
-      var score = 40 * (urgentMain.length / mLen)
-                + 35 * (mainMatch.length  / mLen)
-                + 15 * (seaMatch.length   / Math.max(seaReq.length, 1))
-                - 10 * (missing.length    / mLen);
+      var mLen         = Math.max(mainReq.length, 1);
+      var completeness = mainMatch.length / mLen;
+      var urgentRatio  = urgentMain.length / Math.max(mainMatch.length, 1);
+      var absBonus     = Math.min(mainMatch.length, 8) / 8;
+      var seaRatio     = seaMatch.length / Math.max(seaReq.length, 1);
 
-      return { id: dish.id, name: dish.name, cat: dish.cat, emoji: dish.emoji,
-               score: score, matched: mainMatch.concat(seaMatch),
-               missing: missing, urgentUsed: urgentMain, warnUsed: warnMain };
+      var score = 40 * urgentRatio    /* 매칭 중 임박 비율 → 소진 유도 */
+                + 35 * completeness   /* 주재료 충족률 */
+                + 15 * absBonus       /* 절대 매칭 수 보너스 (최대 8개 기준) */
+                + 10 * seaRatio;      /* 양념 갖춤 정도 */
+
+      /* 주재료 60% 이상 없으면 추천 제외 */
+      if (missing.length > mLen * 0.6) score = 0;
+
+      return {
+        id: dish.id, name: dish.name, cat: dish.cat, emoji: dish.emoji,
+        score: score,
+        mainMatch: mainMatch, seaMatch: seaMatch, missing: missing,
+        urgentMain: urgentMain, warnMain: warnMain, freshMain: freshMain
+      };
     });
 
     return scored
-      .filter(function(r){ return r.matched.length > 0 && r.score > 0; })
+      .filter(function(r){ return r.mainMatch.length > 0 && r.score > 0; })
       .sort(function(a,b){ return b.score - a.score; });
   }
 
   function recoCardHTML(r) {
-    var urgentTags = r.urgentUsed.slice(0,2).map(function(n){
-      return '<span class="tag tag-urgent">' + esc(n) + '</span>';
-    }).join("");
-    var warnOnly = r.warnUsed.filter(function(n){ return r.urgentUsed.indexOf(n) === -1; });
-    var warnTags = warnOnly.slice(0,1).map(function(n){
-      return '<span class="tag tag-warn">' + esc(n) + '</span>';
-    }).join("");
-    var missBadge = r.missing.length ? '<span class="tag tag-miss">+' + r.missing.length + '개 부족</span>' : "";
-    var urgentBadge = r.urgentUsed.length ? '<span class="uses">임박 ' + r.urgentUsed.length + '개 소진</span>' : "";
+    /* 매칭 재료 태그: 임박(빨강) → 주의(노랑) → 신선(초록), 최대 4개 */
+    var matchTags = [];
+    r.urgentMain.forEach(function(n){
+      matchTags.push('<span class="tag tag-urgent">' + esc(n) + '</span>');
+    });
+    r.warnMain.forEach(function(n){
+      matchTags.push('<span class="tag tag-warn">' + esc(n) + '</span>');
+    });
+    r.freshMain.forEach(function(n){
+      matchTags.push('<span class="tag tag-fresh">' + esc(n) + '</span>');
+    });
+    var tagsHtml = matchTags.slice(0, 4).join("");
+
+    /* 부족 재료: 이름 직접 표시 (최대 2개), 초과분은 "외 N개" */
+    var missHtml = "";
+    if (r.missing.length) {
+      var shownMiss = r.missing.slice(0, 2).map(function(n){
+        return '<span class="tag tag-miss">✕ ' + esc(n) + '</span>';
+      }).join("");
+      var moreMiss = r.missing.length > 2
+        ? '<span class="tag tag-miss-more">외 ' + (r.missing.length - 2) + '개</span>'
+        : "";
+      missHtml = '<div class="reco-miss">' + shownMiss + moreMiss + '</div>';
+    }
+
+    var urgentBadge = r.urgentMain.length
+      ? '<span class="uses">임박 ' + r.urgentMain.length + '개 소진</span>' : "";
+
     var yt   = ytUrl(r.name + " 레시피");
     var blog = blogUrl(r.name + " 레시피");
+
     return '<div class="reco-card">'
       + '<div class="reco-thumb">' + (r.emoji || "🍳") + '</div>'
       + '<div class="reco-body">'
       + '<div class="reco-title">' + esc(r.name) + '</div>'
-      + '<div class="reco-tags">' + urgentTags + warnTags + missBadge + '</div>'
+      + '<div class="reco-tags">' + tagsHtml + '</div>'
+      + missHtml
       + '<div class="reco-meta">' + urgentBadge + '</div>'
       + '<div class="reco-links">'
       + '<a class="reco-link reco-link-yt" href="' + yt + '" target="_blank" rel="noopener">▶ YouTube</a>'

@@ -258,8 +258,11 @@ h1, h2, h3 { letter-spacing: -0.02em; }
   color: var(--ink-soft);
 }
 .tag-urgent { background: var(--tomato-bg); color: var(--tomato); }
-.tag-warn { background: var(--amber-bg); color: var(--amber-ink); }
-.tag-miss { background: var(--tint); color: var(--ink-soft); opacity: 0.8; }
+.tag-warn   { background: var(--amber-bg);  color: var(--amber-ink); }
+.tag-fresh  { background: #e6f4ea; color: var(--green-700, #1a6640); }
+.tag-miss   { background: #f2f2f2; color: #888; }
+.tag-miss-more { background: transparent; color: #aaa; font-size: 0.7rem; }
+.reco-miss  { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 4px; }
 
 /* 레시피 빈 상태 */
 .reco-empty {

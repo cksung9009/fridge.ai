@@ -37,20 +37,21 @@ SEASONINGS = {
 def to_can(n): return CANONICAL.get(n, n)
 
 owned_exact = {n: d for n, d in seed}
-owned_canon = {}
-d_canon = {}
+owned_canon, d_canon = {}, {}
 for n, d in seed:
     c = to_can(n)
     owned_canon[c] = True
-    if c not in d_canon or d < d_canon[c]:
-        d_canon[c] = d
+    if c not in d_canon or d < d_canon[c]: d_canon[c] = d
 
-def owns(n):
-    return n in owned_exact or to_can(n) in owned_canon
-
+def owns(n): return n in owned_exact or to_can(n) in owned_canon
 def dday(n):
     if n in owned_exact: return owned_exact[n]
     return d_canon.get(to_can(n), 999)
+def status(n):
+    d = dday(n)
+    if d <= 2: return "urgent"
+    if d <= 5: return "warn"
+    return "fresh"
 
 with open("web/recipes_cookrcp.js", encoding="utf-8") as f:
     content = f.read()
@@ -65,25 +66,30 @@ for m in pat.finditer(content):
     id_, name, cat, emoji, ings_s, seas_s = m.groups()
     main_req = json.loads(ings_s)
     sea_req  = json.loads(seas_s)
-    main_match  = [n for n in main_req if owns(n)]
-    sea_match   = [n for n in sea_req  if owns(n)]
-    missing     = [n for n in main_req if not owns(n)]
-    urgent_main = [n for n in main_match if dday(n) <= 2]
-    warn_main   = [n for n in main_match if 3 <= dday(n) <= 5]
+    main_match = [n for n in main_req if owns(n)]
+    sea_match  = [n for n in sea_req  if owns(n)]
+    missing    = [n for n in main_req if not owns(n)]
+    urgent = [n for n in main_match if status(n) == "urgent"]
+    warn   = [n for n in main_match if status(n) == "warn"]
+    fresh  = [n for n in main_match if status(n) == "fresh"]
+
     mlen = max(len(main_req), 1)
-    score = (40 * len(urgent_main) / mlen
-           + 35 * len(main_match)  / mlen
-           + 15 * len(sea_match)   / max(len(sea_req), 1)
-           - 10 * len(missing)     / mlen)
-    if (main_match or sea_match) and score > 0:
-        results.append((score, name, urgent_main, warn_main, main_match, missing))
+    completeness = len(main_match) / mlen
+    urgent_ratio = len(urgent) / max(len(main_match), 1)
+    abs_bonus    = min(len(main_match), 8) / 8
+    sea_ratio    = len(sea_match) / max(len(sea_req), 1)
+
+    score = 40 * urgent_ratio + 35 * completeness + 15 * abs_bonus + 10 * sea_ratio
+    if len(missing) > mlen * 0.6: score = 0
+
+    if main_match and score > 0:
+        results.append((score, name, urgent, warn, fresh, missing))
 
 results.sort(reverse=True)
-print(f"총 매칭 레시피: {len(results)}개 / 912개")
-print()
+print(f"총 매칭 레시피: {len(results)}개 / 912개\n")
 print("=== TOP 20 추천 ===")
-for i, (score, name, urg, warn, matched, miss) in enumerate(results[:20], 1):
+for i, (score, name, urg, warn, fresh, miss) in enumerate(results[:20], 1):
+    all_match = urg + warn + fresh
     print(f"{i:2}. [{score:5.1f}] {name}")
-    if urg:    print(f"       임박사용: {urg}")
-    if warn:   print(f"       주의사용: {warn[:2]}")
-    if miss:   print(f"       부족: {miss[:3]}")
+    print(f"       보유: {all_match}")
+    if miss: print(f"       부족: {miss}")
