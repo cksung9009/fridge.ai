@@ -61,7 +61,11 @@ pat = re.compile(
     r'ingredients:(\[[^\]]*\]),seasonings:(\[[^\]]*\])\}'
 )
 
-results = []
+total = 0
+pass_cur = 0  # 현재 필터 (missing > 60%)
+pass_new = 0  # 새 필터 (임박+주의 >= 1 AND missing <= 40%)
+
+no_urgent_warn = 0  # 임박/주의 하나도 없는 레시피
 for m in pat.finditer(content):
     id_, name, cat, emoji, ings_s, seas_s = m.groups()
     main_req = json.loads(ings_s)
@@ -79,17 +83,59 @@ for m in pat.finditer(content):
     abs_bonus    = min(len(main_match), 8) / 8
     sea_ratio    = len(sea_match) / max(len(sea_req), 1)
 
-    score = 40 * urgent_ratio + 35 * completeness + 15 * abs_bonus + 10 * sea_ratio
-    if len(missing) > mlen * 0.6: score = 0
+    score = 40*urgent_ratio + 35*completeness + 15*abs_bonus + 10*sea_ratio
 
-    if main_match and score > 0:
+    if not main_match: continue
+    total += 1
+
+    # 현재 필터
+    if score > 0 and len(missing) <= mlen * 0.6:
+        pass_cur += 1
+
+    # 새 필터 후보
+    has_urgent_warn = (len(urgent) + len(warn)) >= 1
+    has_enough = len(missing) <= mlen * 0.4   # 주재료 60% 이상 보유
+
+    if has_urgent_warn and has_enough and score > 0:
+        pass_new += 1
+    elif not has_urgent_warn and len(missing) <= mlen * 0.4:
+        no_urgent_warn += 1
+
+print(f"주재료 매칭 레시피: {total}개")
+print(f"현재 필터 통과:     {pass_cur}개  (missing <= 60%)")
+print(f"새 필터 통과:       {pass_new}개  (임박/주의 1개+ AND missing <= 40%)")
+print(f"임박/주의 없는 것:  {no_urgent_warn}개  (재료는 충분하나 임박/주의 없음)")
+
+print()
+print("=== 새 필터 TOP 15 ===")
+results = []
+for m in pat.finditer(content):
+    id_, name, cat, emoji, ings_s, seas_s = m.groups()
+    main_req = json.loads(ings_s)
+    sea_req  = json.loads(seas_s)
+    main_match = [n for n in main_req if owns(n)]
+    sea_match  = [n for n in sea_req  if owns(n)]
+    missing    = [n for n in main_req if not owns(n)]
+    urgent = [n for n in main_match if status(n) == "urgent"]
+    warn   = [n for n in main_match if status(n) == "warn"]
+    fresh  = [n for n in main_match if status(n) == "fresh"]
+
+    mlen = max(len(main_req), 1)
+    if not main_match: continue
+    if (len(urgent)+len(warn)) < 1: continue
+    if len(missing) > mlen * 0.4: continue
+
+    urgent_ratio = len(urgent) / max(len(main_match), 1)
+    completeness = len(main_match) / mlen
+    abs_bonus    = min(len(main_match), 8) / 8
+    sea_ratio    = len(sea_match) / max(len(sea_req), 1)
+    score = 40*urgent_ratio + 35*completeness + 15*abs_bonus + 10*sea_ratio
+    if score > 0:
         results.append((score, name, urgent, warn, fresh, missing))
 
 results.sort(reverse=True)
-print(f"총 매칭 레시피: {len(results)}개 / 912개\n")
-print("=== TOP 20 추천 ===")
-for i, (score, name, urg, warn, fresh, miss) in enumerate(results[:20], 1):
-    all_match = urg + warn + fresh
+for i, (score, name, urg, wrn, frsh, miss) in enumerate(results[:15], 1):
+    all_match = urg + wrn + frsh
     print(f"{i:2}. [{score:5.1f}] {name}")
     print(f"       보유: {all_match}")
     if miss: print(f"       부족: {miss}")

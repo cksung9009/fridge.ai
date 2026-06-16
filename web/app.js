@@ -321,8 +321,10 @@
                 + 15 * absBonus       /* 절대 매칭 수 보너스 (최대 8개 기준) */
                 + 10 * seaRatio;      /* 양념 갖춤 정도 */
 
-      /* 주재료 60% 이상 없으면 추천 제외 */
-      if (missing.length > mLen * 0.6) score = 0;
+      /* 임박/주의 재료 없는 레시피 제외 (냉장고 소진 목적과 무관) */
+      if (urgentMain.length + warnMain.length === 0) score = 0;
+      /* 주재료 60% 미만 보유 시 제외 */
+      if (missing.length > mLen * 0.4) score = 0;
 
       return {
         id: dish.id, name: dish.name, cat: dish.cat, emoji: dish.emoji,
