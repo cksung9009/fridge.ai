@@ -1,8 +1,8 @@
 # fridge.ai — ERD & Query Definition
 
-- **문서 버전:** 0.3
+- **문서 버전:** 0.4
 - **작성일:** 2026-06-16
-- **상태:** 기획 확정 (MANIFESTO v0.3 반영 — 요리/메뉴 DB 추가, F10 요청 큐 추가)
+- **상태:** 기획 확정 (demo.sql v0.3 동기화 — 스코어 공식 app.js 일치, COOKRCP01 연동 기재)
 
 ---
 
@@ -197,33 +197,47 @@ ORDER BY ui.expires_at ASC;
 ```
 
 ### 레시피 추천 — 임박 재료 기반 스코어링
+> 공식: **40×urgentRatio + 35×completeness + 15×absBonus + 10×seaRatio**  
+> 필터: ① 임박/주의 주재료 ≥ 1개, ② 부족 주재료 ≤ 40%
+
 ```sql
--- 보유 재료 중 임박(D<=2) / 주의(D3~5) 재료 집합 가져오기
 WITH owned AS (
   SELECT i.name, DATEDIFF(ui.expires_at, CURDATE()) AS days_left
   FROM user_inventory ui
   JOIN ingredients i ON ui.ingredient_id = i.id
   WHERE ui.user_id = :userId AND ui.status = 'active'
 ),
-recipe_score AS (
+scored AS (
   SELECT r.id, r.name, r.emoji,
-         COUNT(ri.ingredient_id)                                        AS total_req,
-         SUM(CASE WHEN o.name IS NOT NULL THEN 1 ELSE 0 END)           AS matched,
-         SUM(CASE WHEN o.days_left <= 2   THEN 1 ELSE 0 END)           AS urgent_used,
-         SUM(CASE WHEN o.name IS NULL     THEN 1 ELSE 0 END)           AS missing
+         -- 주재료 (is_required = TRUE)
+         COUNT(CASE WHEN ri.is_required = TRUE THEN 1 END)                        AS main_total,
+         COUNT(CASE WHEN ri.is_required = TRUE AND o.name IS NOT NULL THEN 1 END) AS main_matched,
+         COUNT(CASE WHEN ri.is_required = TRUE AND o.name IS NOT NULL
+                         AND o.days_left <= 2 THEN 1 END)                         AS urgent_matched,
+         COUNT(CASE WHEN ri.is_required = TRUE AND o.name IS NOT NULL
+                         AND o.days_left BETWEEN 3 AND 5 THEN 1 END)              AS warn_matched,
+         COUNT(CASE WHEN ri.is_required = TRUE AND o.name IS NULL THEN 1 END)     AS main_missing,
+         -- 조미료 (is_required = FALSE)
+         COUNT(CASE WHEN ri.is_required = FALSE THEN 1 END)                       AS sea_total,
+         COUNT(CASE WHEN ri.is_required = FALSE AND o.name IS NOT NULL THEN 1 END) AS sea_matched
   FROM recipes r
-  JOIN recipe_ingredients ri ON r.id = ri.recipe_id AND ri.is_required = TRUE
+  JOIN recipe_ingredients ri ON r.id = ri.recipe_id
   LEFT JOIN owned o ON o.name = (
-    SELECT i2.name FROM ingredients i2 WHERE i2.id = ri.ingredient_id
+    SELECT i2.name FROM ingredients i2 WHERE i2.id = ri.ingredient_id LIMIT 1
   )
   GROUP BY r.id, r.name, r.emoji
 )
 SELECT id, name, emoji,
-       (40 * urgent_used / NULLIF(total_req,0)
-      + 30 * matched     / NULLIF(total_req,0)
-      - 10 * missing     / NULLIF(total_req,0)) AS score
-FROM recipe_score
-WHERE matched > 0
+       ROUND(
+         40 * urgent_matched / NULLIF(main_matched, 0)  -- urgentRatio
+       + 35 * main_matched   / NULLIF(main_total,   0)  -- completeness
+       + 15 * LEAST(main_matched, 8) / 8                -- absBonus (8개 이상 동점 방지)
+       + 10 * sea_matched    / NULLIF(sea_total,    0)   -- seaRatio
+       , 2) AS score
+FROM scored
+WHERE main_matched > 0
+  AND (urgent_matched + warn_matched) > 0     -- 임박/주의 주재료 최소 1개 (필터 ①)
+  AND main_missing <= main_total * 0.4        -- 부족 재료 40% 이하 (필터 ②)
 ORDER BY score DESC
 LIMIT 12;
 ```
@@ -283,8 +297,9 @@ ON DUPLICATE KEY UPDATE requested_at = NOW();
 | 소진 기록 | 단일 테이블 (type 구분) | 리포트 쿼리 단순화 |
 | 탄소 데이터 | 재료 마스터 컬럼 | 1:1 대응, 조인 불필요, 농진청 + 문헌 확보 |
 | 무게 환산 | 마스터 기본값 사용 | 사용자 입력 부담 제거 |
-| 레시피 DB | 요리/메뉴 DB 직접 구축 (요리↔재료 매핑) | 저작권 미보유, 스코어링 실현 가능 (MANIFESTO §6) |
-| 레시피 소싱 | YouTube 검색 링크 (MVP) → YouTube Data API (Phase 2) | API 쿼터 의존 없이 MVP 시작, Phase 2에서 정밀 카드 |
+| 레시피 DB | COOKRCP01 API (1,146건) + 내부 recipe_ingredients 매핑 병행 | 식품안전나라 공공 API로 풍부한 레시피 확보, DB는 스코어링 정밀 제어용 |
+| 레시피 소싱 | YouTube/Naver 블로그 검색 URL 동적 생성 (MVP) → YouTube Data API (Phase 2) | API 쿼터 의존 없이 MVP 시작, Phase 2에서 정밀 카드 |
+| 스코어 공식 | 40×urgentRatio + 35×completeness + 15×absBonus + 10×seaRatio | urgentRatio: 임박 재료 활용도, completeness: 전체 매칭률, absBonus: 절대 매칭 수 보너스(8개 상한), seaRatio: 조미료 구비율 |
 | recipe_id in logs | NULL 허용 FK | 레시피 참고 없이 직접 조리한 경우 포함 |
 | F10 요청 큐 | ingredient_requests 테이블 | 관리자 검토 후 마스터 반영 워크플로우 |
 | user_id MVP 처리 | 단일 사용자(id=1) 고정 | 데모/제출 쿼리 명확성, 멀티유저는 Phase 3 |
@@ -302,6 +317,7 @@ ON DUPLICATE KEY UPDATE requested_at = NOW();
 | 0.1 | 2026-06-14 | 최초 작성 |
 | 0.2 | 2026-06-14 | MVP 리뷰 반영 — purchased_at 제거, 인덱스 추가 |
 | 0.3 | 2026-06-16 | MANIFESTO v0.3 반영 — recipes·recipe_ingredients·ingredient_requests 추가, consumption_logs.youtube_video_id → recipe_id 교체, 레시피 스코어링 쿼리 추가 |
+| 0.4 | 2026-06-16 | demo.sql v0.3 동기화 — 카테고리 10종·재료 40종·레시피 10종 시드 추가, 스코어 공식 app.js 완전 일치(urgentRatio/completeness/absBonus/seaRatio), COOKRCP01 연동 결정 기재, Q2 YouTube검색→레시피추천 교체, Q8 레시피 참고 빈도 쿼리 추가 |
 
 ---
 
