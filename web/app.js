@@ -11,6 +11,36 @@
   var QUICK = ["달걀","우유","양파","대파","두부","감자","당근","닭가슴살","애호박"];
   var DEMO_USER = { name: "김민준", initial: "김", displayName: "민준" };
 
+  /* ---- 재료 정규화: 별칭 → 표준명 ---- */
+  var CANONICAL = {
+    "돼지고기(삼겹살)":"돼지고기","돼지고기(불고기용)":"돼지고기","돼지고기(앞다리)":"돼지고기",
+    "삼겹살":"돼지고기","목살":"돼지고기",
+    "소고기(불고기용)":"소고기","소고기(국거리)":"소고기",
+    "닭가슴살":"닭고기","닭볶음탕용":"닭고기","닭다리살":"닭고기","닭안심":"닭고기",
+    "대파":"파류","파":"파류","쪽파":"파류","실파":"파류",
+    "두부":"두부류","연두부":"두부류","순두부":"두부류",
+    "표고버섯":"버섯","느타리버섯":"버섯","새송이버섯":"버섯","팽이버섯":"버섯","양송이버섯":"버섯",
+    "새우":"새우류","칵테일새우":"새우류","냉동새우":"새우류",
+    "청양고추":"고추류","홍고추":"고추류","풋고추":"고추류",
+    "계란":"달걀",
+    "배추":"배추류","알배추":"배추류",
+    "애호박":"호박류","단호박":"호박류",
+    "갈치":"생선류","삼치":"생선류","조기":"생선류","고등어":"생선류","연어":"생선류"
+  };
+
+  var SEASONINGS_SET = {
+    "간장":1,"국간장":1,"진간장":1,"소금":1,"설탕":1,"후추":1,
+    "참기름":1,"들기름":1,"식용유":1,"올리브오일":1,
+    "고춧가루":1,"고추장":1,"된장":1,"쌈장":1,
+    "액젓":1,"멸치액젓":1,"새우젓":1,"식초":1,
+    "케첩":1,"마요네즈":1,"굴소스":1,"청주":1,"미림":1,
+    "요리당":1,"매실액":1,"물엿":1,"조청":1,
+    "전분":1,"밀가루":1,"참깨":1,"깨소금":1,"통깨":1
+  };
+
+  function toCanonical(name) { return CANONICAL[name] || name; }
+  function isSeasoning(name) { return !!SEASONINGS_SET[name]; }
+
   function isValidIngredient(name) {
     return Object.prototype.hasOwnProperty.call(MASTER, name);
   }
@@ -193,37 +223,61 @@
   }
 
   function scoreRecipes() {
-    var RECIPES = window.FRIDGE_RECIPES || [];
+    var RECIPES = (window.FRIDGE_RECIPES || []).concat(window.FRIDGE_RECIPES_EXT || []);
     if (!items.length || !RECIPES.length) return [];
 
-    var ownedSet = {};
-    items.forEach(function(it){ ownedSet[it.name] = true; });
-    var dMap = {};
-    items.forEach(function(it){ dMap[it.name] = ddayOf(it.expiry); });
+    /* 보유 재료: 정확한 이름 + 표준명 양쪽 등록 */
+    var ownedExact = {};
+    var ownedCanon = {};
+    var dExact = {};
+    var dCanon = {};
+    items.forEach(function(it) {
+      var d = ddayOf(it.expiry);
+      ownedExact[it.name] = true;
+      dExact[it.name] = d;
+      var c = toCanonical(it.name);
+      ownedCanon[c] = true;
+      if (dCanon[c] === undefined || d < dCanon[c]) dCanon[c] = d;
+    });
+
+    function owns(n) { return ownedExact[n] || ownedCanon[toCanonical(n)]; }
+    function dday(n) {
+      if (dExact[n] !== undefined) return dExact[n];
+      return dCanon[toCanonical(n)];
+    }
 
     var scored = RECIPES.map(function(dish) {
-      var req = dish.ingredients;
-      var matched = req.filter(function(n){ return ownedSet[n]; });
-      var missing = req.filter(function(n){ return !ownedSet[n]; });
-      var urgentUsed = matched.filter(function(n){ return dMap[n] <= 2; });
-      var warnUsed   = matched.filter(function(n){ return dMap[n] >= 3 && dMap[n] <= 5; });
+      var mainReq = dish.ingredients ? dish.ingredients.slice() : [];
+      var seaReq  = dish.seasonings  ? dish.seasonings.slice()  : [];
 
-      var urgentRatio = urgentUsed.length / Math.max(req.length, 1);
-      var matchRate   = matched.length / Math.max(req.length, 1);
-      var urgencyWeight = matched.reduce(function(sum, n) {
-        var d = dMap[n];
-        return sum + (d <= 2 ? 1 : d <= 5 ? 0.5 : 0.1);
-      }, 0) / Math.max(req.length, 1);
-      var missingPenalty = missing.length / Math.max(req.length, 1);
-      var score = 40*urgentRatio + 30*matchRate + 20*urgencyWeight - 10*missingPenalty;
+      /* 구형 포맷(seasonings 없음): ingredients에서 자동 분리 */
+      if (!dish.seasonings) {
+        var autoMain = []; var autoSea = [];
+        mainReq.forEach(function(n) {
+          (isSeasoning(n) ? autoSea : autoMain).push(n);
+        });
+        mainReq = autoMain; seaReq = autoSea;
+      }
+
+      var mainMatch  = mainReq.filter(owns);
+      var seaMatch   = seaReq.filter(owns);
+      var missing    = mainReq.filter(function(n){ return !owns(n); });
+      var urgentMain = mainMatch.filter(function(n){ var d=dday(n); return d!==undefined&&d<=2; });
+      var warnMain   = mainMatch.filter(function(n){ var d=dday(n); return d!==undefined&&d>=3&&d<=5; });
+
+      var mLen = Math.max(mainReq.length, 1);
+      var score = 40 * (urgentMain.length / mLen)
+                + 35 * (mainMatch.length  / mLen)
+                + 15 * (seaMatch.length   / Math.max(seaReq.length, 1))
+                - 10 * (missing.length    / mLen);
 
       return { id: dish.id, name: dish.name, cat: dish.cat, emoji: dish.emoji,
-               score: score, matched: matched, missing: missing,
-               urgentUsed: urgentUsed, warnUsed: warnUsed };
+               score: score, matched: mainMatch.concat(seaMatch),
+               missing: missing, urgentUsed: urgentMain, warnUsed: warnMain };
     });
 
     return scored
-      .filter(function(r){ return r.matched.length > 0; })
+      .filter(function(r){ return r.matched.length > 0 && r.score > 0; })
       .sort(function(a,b){ return b.score - a.score; });
   }
 
