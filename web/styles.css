@@ -636,3 +636,214 @@ h1, h2, h3 { letter-spacing: -0.02em; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   HOME VIEW — Visual Redesign
+   Scoped to .view-home / #homeReco to prevent spillover.
+════════════════════════════════════════════════════════════ */
+
+/* ── Summary: 3-col grid, urgent hero + 3 mini stats ── */
+.summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+/* All cards: flex column, left-aligned */
+.summary-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: 14px 14px 13px;
+}
+
+/* Urgent card: spans all 3 cols, horizontal layout */
+.summary-card.sc-urgent {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 22px;
+  background: linear-gradient(145deg, #fce8e3 0%, #fdf6f4 100%);
+  border-color: #f0bfb4;
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+.summary-card.sc-urgent:active { transform: scale(0.98); }
+
+/* Left-side content wrapper inside urgent card */
+.sc-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* Urgent: big bold number */
+.sc-urgent .sc-num {
+  font-size: 3.4rem;
+  line-height: 1;
+  font-weight: 800;
+  color: var(--tomato);
+}
+
+/* Urgent: colored label */
+.sc-urgent .sc-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--tomato);
+  opacity: 0.82;
+}
+
+/* Icon spans */
+.sc-icon {
+  display: block;
+  font-size: 1.3rem;
+  line-height: 1;
+  margin-bottom: 5px;
+}
+.sc-urgent .sc-icon {
+  font-size: 2.8rem;
+  margin-bottom: 0;
+}
+
+/* Mini stat cards: sized numbers */
+.summary-card:not(.sc-urgent) .sc-num {
+  font-size: 1.9rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.summary-card:not(.sc-urgent) .sc-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+
+/* Mini card number colors (already set above, reinforce) */
+.sc-warn .sc-num  { color: var(--amber-ink); }
+.sc-ok   .sc-num  { color: var(--green-600); }
+.sc-total .sc-num { color: var(--ink); }
+
+/* Mini card tinted backgrounds */
+.summary-card.sc-warn {
+  background: linear-gradient(145deg, #fef4e0 0%, #fdfaf3 100%);
+  border-color: #f5d9a4;
+}
+.summary-card.sc-ok {
+  background: linear-gradient(145deg, #e3f1e6 0%, #f0f8f2 100%);
+  border-color: var(--green-300);
+}
+.summary-card.sc-total {
+  background: var(--card);
+}
+
+/* ── Block sections: elevated card containers (home only) ── */
+.view-home .block {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 18px 16px;
+  margin-top: 14px;
+  box-shadow: var(--shadow);
+}
+
+/* ── U-card: urgency bar + badge at top ── */
+.u-card {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 140px;
+  scroll-snap-align: start;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 13px 13px 13px 11px;
+  box-shadow: var(--shadow);
+}
+
+/* Move D-day badge to top via flex order */
+.u-dday {
+  order: -1;
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+/* Left accent bar + subtle tint by urgency status */
+.u-card:has(.dday-urgent) {
+  border-left-color: var(--tomato);
+  background: linear-gradient(108deg, #fef2ef 0%, var(--card) 55%);
+}
+.u-card:has(.dday-warn) {
+  border-left-color: var(--amber);
+  background: linear-gradient(108deg, #fef8ec 0%, var(--card) 55%);
+}
+.u-card:has(.dday-ok) {
+  border-left-color: var(--green-500);
+  background: linear-gradient(108deg, #eef7f1 0%, var(--card) 55%);
+}
+.u-card:has(.dday-expired) {
+  border-left-color: #c5c0b5;
+}
+
+/* U-card typography polish */
+.u-emoji {
+  font-size: 2rem;
+  line-height: 1;
+}
+.u-name {
+  font-weight: 800;
+  font-size: 0.95rem;
+  margin-top: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.u-qty {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+
+/* ── Home reco-list: horizontal scroll cards ── */
+#homeReco {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+#homeReco::-webkit-scrollbar { display: none; }
+
+#homeReco .reco-card {
+  flex: 0 0 228px;
+  scroll-snap-align: start;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+#homeReco .reco-thumb {
+  flex: none;
+  width: 100%;
+  height: 76px;
+  border-radius: var(--r-md) var(--r-md) 0 0;
+  font-size: 2rem;
+  background: linear-gradient(145deg, var(--green-100), #d4ead9);
+}
+
+#homeReco .reco-body {
+  padding: 11px 13px 12px;
+  flex: 1;
+}
+
+#homeReco .reco-title  { font-size: 0.96rem; font-weight: 800; }
+#homeReco .reco-tags   { margin-top: 5px; }
+#homeReco .reco-miss   { margin-top: 3px; }
+#homeReco .reco-meta   { margin-top: 4px; }
+
+#homeReco .reco-links  { margin-top: 8px; gap: 6px; }
+#homeReco .reco-link   { font-size: 0.74rem; padding: 4px 10px; }

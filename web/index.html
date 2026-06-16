@@ -38,19 +38,27 @@
       <section class="view view-home is-active" id="view-home">
         <!-- summary -->
         <div class="summary">
+          <!-- 임박: hero card spanning full width -->
           <button class="summary-card sc-urgent" data-status="urgent">
-            <span class="sc-num" id="sumUrgent">0</span>
-            <span class="sc-label">임박</span>
+            <div class="sc-content">
+              <span class="sc-num" id="sumUrgent">0</span>
+              <span class="sc-label">임박 재료</span>
+            </div>
+            <span class="sc-icon" aria-hidden="true">🔥</span>
           </button>
+          <!-- 3 mini stat cards -->
           <button class="summary-card sc-warn" data-status="warn">
+            <span class="sc-icon" aria-hidden="true">⚠️</span>
             <span class="sc-num" id="sumWarn">0</span>
             <span class="sc-label">주의</span>
           </button>
           <button class="summary-card sc-ok" data-status="fresh">
+            <span class="sc-icon" aria-hidden="true">🌿</span>
             <span class="sc-num" id="sumFresh">0</span>
             <span class="sc-label">신선</span>
           </button>
           <button class="summary-card sc-total" data-status="all">
+            <span class="sc-icon" aria-hidden="true">🧊</span>
             <span class="sc-num" id="sumTotal">0</span>
             <span class="sc-label">전체</span>
           </button>
