@@ -111,21 +111,65 @@
 
       <!-- ---- REPORT ---- -->
       <section class="view view-report" id="view-report">
-        <div class="report-hero">
-          <span>이번 달 절감</span>
-          <strong>−1.2<small>kg CO₂</small></strong>
-          <p>작은 실천이 모여 지구를 지켜요 🌍</p>
+
+        <!-- 핵심 히어로: 음식물 쓰레기 절감 -->
+        <div class="rp-hero">
+          <div class="rp-hero-top">
+            <span class="rp-hero-label">이번 달 구출한 재료</span>
+            <span class="rp-badge-chip" id="rpBadgeChip">🌱 새싹 절약가</span>
+          </div>
+          <div class="rp-hero-count">
+            <span class="rp-hero-num" id="rpHeroSaved">0</span>
+            <span class="rp-hero-unit">개</span>
+          </div>
+          <div class="rp-hero-sub">
+            음식물 쓰레기 약 <strong id="rpWasteG">0g</strong> 절감
+            &nbsp;·&nbsp; 쓰레기봉투 <strong id="rpBags">0장</strong> 아꼈어요 🗑️
+          </div>
         </div>
+
+        <!-- 4개 수치 -->
         <div class="report-grid">
-          <div class="report-stat"><strong id="rpSaveMoney">₩18,400</strong><span>절약 식비</span></div>
-          <div class="report-stat"><strong id="rpSaved">9개</strong><span>구한 재료</span></div>
-          <div class="report-stat"><strong id="rpRate">82%</strong><span>소진율</span></div>
-          <div class="report-stat"><strong id="rpCook">14회</strong><span>조리 완료</span></div>
+          <div class="report-stat">
+            <span class="rp-ico">💰</span>
+            <strong id="rpSaveMoney">₩0</strong>
+            <span>절약 식비</span>
+          </div>
+          <div class="report-stat">
+            <span class="rp-ico">🍳</span>
+            <strong id="rpCook">0회</strong>
+            <span>조리 완료</span>
+          </div>
+          <div class="report-stat">
+            <span class="rp-ico">🌍</span>
+            <strong id="rpCO2">0kg</strong>
+            <span>CO₂ 절감</span>
+          </div>
+          <div class="report-stat">
+            <span class="rp-ico">💧</span>
+            <strong id="rpWater">0L</strong>
+            <span>물 절약</span>
+          </div>
         </div>
-        <div class="block">
-          <div class="block-head"><h2>주간 소진 추이</h2></div>
-          <div class="bars" id="reportBars"></div>
+
+        <!-- 구출 재료 목록 -->
+        <div class="block rp-block">
+          <div class="block-head"><h2>🥕 구출한 재료들</h2></div>
+          <div class="rp-saved-list" id="rpSavedItems">
+            <span class="rp-empty-msg">조리완료 버튼을 눌러 재료를 소진해보세요</span>
+          </div>
         </div>
+
+        <!-- 주간 소진 추이 -->
+        <div class="block rp-block">
+          <div class="block-head"><h2>📊 주간 소진 추이</h2></div>
+          <div class="rp-bars-wrap">
+            <div class="bars" id="reportBars"></div>
+            <div class="rp-bar-days" id="rpBarDays"></div>
+          </div>
+        </div>
+
+      </section>
       </section>
 
     </main>

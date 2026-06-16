@@ -76,6 +76,26 @@
     return "dday-ok";
   }
 
+  /* ---- 소비 로그 ---- */
+  var LOG_KEY = "fridge.ai.log.v1";
+  function loadLog() { try { return JSON.parse(localStorage.getItem(LOG_KEY) || "[]"); } catch(e) { return []; } }
+  function saveLog(log) { try { localStorage.setItem(LOG_KEY, JSON.stringify(log)); } catch(e) {} }
+
+  function seedLog() {
+    if (loadLog().length > 0) return;
+    var base = new Date(TODAY);
+    var names = [
+      "달걀","두부","시금치","대파","닭가슴살","콩나물","양파","표고버섯",
+      "오이","고등어","새우","돼지고기(삼겹살)","당근","애호박","배추",
+      "달걀","대파","두부","시금치","양파","닭가슴살"
+    ];
+    var log = names.map(function(name, i) {
+      var d = new Date(base); d.setDate(d.getDate() - (21 - i));
+      return { date: toISO(d), name: name, act: i % 8 === 0 ? "discard" : "cook" };
+    });
+    saveLog(log);
+  }
+
   /* ---- 상태 ---- */
   var STORE_KEY = "fridge.ai.items.v4";
   var items = load();
@@ -454,18 +474,76 @@
   }
 
   function renderReport() {
-    $("#rpSaveMoney").textContent = "23,800원";
-    $("#rpSaved").textContent = "12개";
-    $("#rpRate").textContent = "76%";
-    $("#rpCook").textContent = "19회";
-    var hero = $(".report-hero strong");
-    if (hero) hero.innerHTML = "&#8722;2.1<small>kg CO&#8322;</small>";
-    var heights = [45, 68, 52, 80, 92, 71, 87];
-    el.reportBars.innerHTML = heights.map(function(){ return '<div class="bar" style="height:0"></div>'; }).join("");
+    seedLog();
+    var log     = loadLog();
+    var month   = toISO(new Date()).slice(0, 7);
+    var mLog    = log.filter(function(e){ return e.date.startsWith(month); });
+    var cooked  = mLog.filter(function(e){ return e.act === "cook"; });
+
+    /* ── 핵심 수치 계산 ── */
+    var saved   = cooked.length;
+    var wasteG  = saved * 150;                         /* 재료당 평균 150g */
+    var bags    = Math.floor(wasteG / 500);            /* 3L 봉투 1장 = 500g */
+    var money   = saved * 2500;                        /* 재료당 평균 ₩2,500 */
+    var co2     = (saved * 0.13).toFixed(1);           /* 재료당 CO₂ 0.13kg */
+    var water   = saved * 30;                          /* 재료당 물 30L */
+
+    /* ── 뱃지 ── */
+    var badge = saved >= 25 ? { e: "🏆", t: "냉장고 마스터" }
+              : saved >= 15 ? { e: "🌿", t: "환경 지킴이" }
+              : saved >= 7  ? { e: "🌱", t: "새싹 절약가" }
+              :               { e: "🥕", t: "첫 걸음" };
+
+    /* ── 히어로 ── */
+    var wasteStr = wasteG >= 1000 ? (wasteG / 1000).toFixed(1) + "kg" : wasteG + "g";
+    set("rpHeroSaved", saved);
+    set("rpWasteG",    wasteStr);
+    set("rpBags",      bags + "장");
+    set("rpBadgeChip", badge.e + " " + badge.t);
+
+    /* ── 수치 카드 ── */
+    set("rpSaveMoney", "₩" + money.toLocaleString());
+    set("rpCook",      cooked.length + "회");
+    set("rpCO2",       co2 + "kg");
+    set("rpWater",     water + "L");
+
+    /* ── 구출 재료 목록 ── */
+    var names  = cooked.map(function(e){ return e.name; });
+    var unique = names.filter(function(n, i){ return names.indexOf(n) === i; });
+    var listEl = $("#rpSavedItems");
+    if (listEl) listEl.innerHTML = unique.length
+      ? unique.slice(0, 16).map(function(n){
+          return '<span class="rp-item-chip">' + esc(n) + '</span>';
+        }).join("")
+      : '<span class="rp-empty-msg">조리완료 버튼을 눌러 재료를 소진해보세요</span>';
+
+    /* ── 주간 소진 추이 (최근 7일) ── */
+    var dayNames = ["일","월","화","수","목","금","토"];
+    var dayCounts = [];
+    for (var i = 6; i >= 0; i--) {
+      var d = new Date(TODAY); d.setDate(d.getDate() - i);
+      var iso = toISO(d);
+      var cnt = log.filter(function(e){ return e.date === iso && e.act === "cook"; }).length;
+      dayCounts.push({ label: dayNames[d.getDay()], cnt: cnt });
+    }
+    var maxCnt = Math.max.apply(null, dayCounts.map(function(d){ return d.cnt; })) || 1;
+
+    var daysEl = $("#rpBarDays");
+    el.reportBars.innerHTML = dayCounts.map(function(d){
+      var pct = Math.round((d.cnt / maxCnt) * 100) || 6;
+      return '<div class="bar" style="height:0" data-h="' + pct + '"></div>';
+    }).join("");
+    if (daysEl) daysEl.innerHTML = dayCounts.map(function(d){
+      return '<span>' + d.label + '</span>';
+    }).join("");
+
     requestAnimationFrame(function() {
-      var bars = el.reportBars.querySelectorAll(".bar");
-      bars.forEach(function(b, i){ b.style.height = heights[i] + "%"; });
+      el.reportBars.querySelectorAll(".bar").forEach(function(b){
+        b.style.height = b.dataset.h + "%";
+      });
     });
+
+    function set(id, val) { var el = $("#" + id); if (el) el.textContent = val; }
   }
 
   function renderAll() {
@@ -621,6 +699,9 @@
       var it = items.filter(function(x){ return x.id === btn.dataset.id; })[0];
       items = items.filter(function(x){ return x.id !== btn.dataset.id; });
       renderAll();
+      var log = loadLog();
+      log.push({ date: toISO(new Date()), name: it ? it.name : "?", act: btn.dataset.act });
+      saveLog(log);
       if (btn.dataset.act === "cook") {
         toast((it ? it.name : "재료") + " 조리 완료! 소진했어요");
       } else {
