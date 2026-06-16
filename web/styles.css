@@ -795,11 +795,11 @@ h1, h2, h3 { letter-spacing: -0.02em; }
   box-shadow: var(--shadow);
 }
 
-/* ── Urgent 섹션: 2열 그리드 ── */
+/* ── Urgent 섹션: 단일 열 리스트 ── */
 .urgent-scroll {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   overflow-x: unset;
   padding-bottom: 0;
   scroll-snap-type: unset;
@@ -823,7 +823,7 @@ h1, h2, h3 { letter-spacing: -0.02em; }
 .u-info  { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .u-name  { font-weight: 800; font-size: 0.9rem;
            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 0; }
-.u-qty   { font-size: 0.75rem; color: var(--ink-soft); }
+.u-qty   { font-size: 0.75rem; color: var(--ink-soft); white-space: nowrap; }
 .u-dday  { flex-shrink: 0; order: unset; margin: 0; }
 
 /* Left accent bar + subtle tint by urgency status */
