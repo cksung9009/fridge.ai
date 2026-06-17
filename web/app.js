@@ -125,7 +125,7 @@
     }
     return [
       /* ── 임박 (0-2일) ── */
-      mk("우유",             "900mL 1팩",   0),
+      mk("달걀",             "10개",         0),
       mk("두부",             "1모",          1),
       mk("대파",             "1단",          1),
       mk("새우",             "200g",         1),
@@ -139,7 +139,7 @@
       mk("소고기(불고기용)", "300g",          2),
 
       /* ── 주의 (3-5일) ── */
-      mk("달걀",             "10개",         4),
+      mk("우유",             "900mL 1팩",    4),
       mk("닭가슴살",         "400g",         3),
       mk("돼지고기(삼겹살)", "500g",         3),
       mk("애호박",           "1개",          5),
@@ -336,12 +336,12 @@
       var mLen         = Math.max(mainReq.length, 1);
       var completeness = mainMatch.length / mLen;
       var urgentRatio  = urgentMain.length / Math.max(mainMatch.length, 1);
-      var absBonus     = Math.min(mainMatch.length, 8) / 8;
+      var absBonus     = Math.min(urgentMain.length + warnMain.length, 5) / 5;
       var seaRatio     = seaMatch.length / Math.max(seaReq.length, 1);
 
-      var score = 40 * urgentRatio    /* 매칭 중 임박 비율 → 소진 유도 */
-                + 35 * completeness   /* 주재료 충족률 */
-                + 15 * absBonus       /* 절대 매칭 수 보너스 (최대 8개 기준) */
+      var score = 35 * urgentRatio    /* 매칭 중 임박 비율 → 소진 유도 */
+                + 15 * completeness   /* 주재료 충족률 */
+                + 40 * absBonus       /* 임박·주의 재료 절대 개수 보너스 (다재료 요리 우대) */
                 + 10 * seaRatio;      /* 양념 갖춤 정도 */
 
       /* 임박/주의 재료 없는 레시피 제외 (냉장고 소진 목적과 무관) */
@@ -357,9 +357,15 @@
       };
     });
 
+    var seen = {};
     return scored
       .filter(function(r){ return r.mainMatch.length > 0 && r.score > 0; })
-      .sort(function(a,b){ return b.score - a.score; });
+      .sort(function(a,b){ return b.score - a.score; })
+      .filter(function(r){
+        if (seen[r.name]) return false;
+        seen[r.name] = true;
+        return true;
+      });
   }
 
   function recoCardHTML(r) {
@@ -485,7 +491,7 @@
       + '</div>'
       + '<p class="guardian-text">' + esc(text) + '</p>'
       + '<div class="guardian-foot">'
-      + '<span class="guardian-recipe">' + esc((expl && expl.emoji) || top.emoji || "🍳") + " " + esc(top.name) + '</span>'
+      + '<span class="guardian-recipe">' + esc((expl && expl.emoji) || top.emoji || "🍳") + " " + esc((expl && expl.recipe) || top.name) + '</span>'
       + co2Html
       + '</div>';
     el.guardianBanner.classList.add("is-active");
