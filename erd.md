@@ -229,10 +229,10 @@ scored AS (
 )
 SELECT id, name, emoji,
        ROUND(
-         40 * urgent_matched / NULLIF(main_matched, 0)  -- urgentRatio
-       + 35 * main_matched   / NULLIF(main_total,   0)  -- completeness
-       + 15 * LEAST(main_matched, 8) / 8                -- absBonus (8개 이상 동점 방지)
-       + 10 * sea_matched    / NULLIF(sea_total,    0)   -- seaRatio
+         35 * urgent_matched / NULLIF(main_matched, 0)               -- urgentRatio
+       + 15 * main_matched   / NULLIF(main_total,   0)               -- completeness
+       + 40 * LEAST(urgent_matched + warn_matched, 5) / 5            -- absBonus (임박·주의 재료 절대 개수, 다재료 우대)
+       + 10 * sea_matched    / NULLIF(sea_total,    0)                -- seaRatio
        , 2) AS score
 FROM scored
 WHERE main_matched > 0
@@ -299,7 +299,7 @@ ON DUPLICATE KEY UPDATE requested_at = NOW();
 | 무게 환산 | 마스터 기본값 사용 | 사용자 입력 부담 제거 |
 | 레시피 DB | COOKRCP01 API (1,146건) + 내부 recipe_ingredients 매핑 병행 | 식품안전나라 공공 API로 풍부한 레시피 확보, DB는 스코어링 정밀 제어용 |
 | 레시피 소싱 | YouTube/Naver 블로그 검색 URL 동적 생성 (MVP) → YouTube Data API (Phase 2) | API 쿼터 의존 없이 MVP 시작, Phase 2에서 정밀 카드 |
-| 스코어 공식 | 40×urgentRatio + 35×completeness + 15×absBonus + 10×seaRatio | urgentRatio: 임박 재료 활용도, completeness: 전체 매칭률, absBonus: 절대 매칭 수 보너스(8개 상한), seaRatio: 조미료 구비율 |
+| 스코어 공식 | 35×urgentRatio + 15×completeness + 40×absBonus + 10×seaRatio | urgentRatio: 임박 재료 활용도, completeness: 전체 매칭률, absBonus: 임박·주의 재료 절대 개수(5개 상한) — 다재료 요리 우대, seaRatio: 조미료 구비율 |
 | recipe_id in logs | NULL 허용 FK | 레시피 참고 없이 직접 조리한 경우 포함 |
 | F10 요청 큐 | ingredient_requests 테이블 | 관리자 검토 후 마스터 반영 워크플로우 |
 | user_id MVP 처리 | 단일 사용자(id=1) 고정 | 데모/제출 쿼리 명확성, 멀티유저는 Phase 3 |
@@ -318,6 +318,7 @@ ON DUPLICATE KEY UPDATE requested_at = NOW();
 | 0.2 | 2026-06-14 | MVP 리뷰 반영 — purchased_at 제거, 인덱스 추가 |
 | 0.3 | 2026-06-16 | MANIFESTO v0.3 반영 — recipes·recipe_ingredients·ingredient_requests 추가, consumption_logs.youtube_video_id → recipe_id 교체, 레시피 스코어링 쿼리 추가 |
 | 0.4 | 2026-06-16 | demo.sql v0.3 동기화 — 카테고리 10종·재료 40종·레시피 10종 시드 추가, 스코어 공식 app.js 완전 일치(urgentRatio/completeness/absBonus/seaRatio), COOKRCP01 연동 결정 기재, Q2 YouTube검색→레시피추천 교체, Q8 레시피 참고 빈도 쿼리 추가 |
+| 0.5 | 2026-06-17 | 스코어링 공식 개정 — absBonus 기준을 전체 매칭 수에서 임박·주의 재료 절대 개수로 변경, 가중치 재조정(35/15/40/10), 재고 날짜 CURDATE() 상대값으로 전환 |
 
 ---
 

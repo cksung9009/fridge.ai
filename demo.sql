@@ -1,7 +1,7 @@
 -- ============================================================
 -- fridge.ai — Demo SQL (MySQL)
 -- 목적: ERD 검증 및 핵심 쿼리 데모
--- ERD 버전: v0.3 (recipes·recipe_ingredients·ingredient_requests 추가)
+-- ERD 버전: v0.4 (스코어링 공식 개정: 35×urgentRatio + 15×completeness + 40×absBonus + 10×seaRatio)
 -- ============================================================
 
 DROP DATABASE IF EXISTS fridge_ai;
@@ -191,33 +191,33 @@ INSERT INTO ingredients (name, category_id, default_unit, weight_per_unit_g, car
 INSERT INTO users (email, password_hash) VALUES
 ('guest@fridge.ai', '$2b$10$demohashdemohashdemohashdemohashdemohashdemohashdemo');
 
--- 냉장고 재고 (기준일: 2026-06-16)
+-- 냉장고 재고 (CURDATE() 기준 상대 날짜 — 실행 시점에 D-day 자동 계산)
 INSERT INTO user_inventory (user_id, ingredient_id, quantity, unit, expires_at, status) VALUES
-(1, 23, 6,  '개', '2026-06-16', 'active'),  -- 달걀      D-day ⚠️
-(1, 26, 1,  '모', '2026-06-17', 'active'),  -- 두부      D-1
-(1,  4, 1,  '대', '2026-06-17', 'active'),  -- 대파      D-1
-(1, 20, 1,  '팩', '2026-06-17', 'active'),  -- 새우      D-1
-(1, 18, 1,  '마리','2026-06-18','active'),  -- 고등어    D-2
-(1,  9, 1,  '단', '2026-06-18', 'active'),  -- 시금치    D-2
-(1, 11, 1,  '봉', '2026-06-18', 'active'),  -- 상추      D-2
-(1, 21, 1,  '마리','2026-06-18','active'),  -- 오징어    D-2
-(1, 22, 1,  '봉', '2026-06-18', 'active'),  -- 바지락    D-2
-(1, 17, 1,  '팩', '2026-06-18', 'active'),  -- 소고기    D-2
-(1, 15, 1,  '팩', '2026-06-19', 'active'),  -- 닭가슴살  D-3
-(1, 13, 1,  '팩', '2026-06-19', 'active'),  -- 돼지고기  D-3
-(1, 33, 3,  '개', '2026-06-19', 'active'),  -- 바나나    D-3
-(1, 27, 1,  '팩', '2026-06-19', 'active'),  -- 순두부    D-3
-(1, 28, 1,  '팩', '2026-06-19', 'active'),  -- 표고버섯  D-3
-(1, 29, 1,  '봉', '2026-06-19', 'active'),  -- 팽이버섯  D-3
-(1,  3, 2,  '개', '2026-06-22', 'active'),  -- 양파      D-6
-(1,  1, 3,  '개', '2026-06-24', 'active'),  -- 감자      D-8
-(1, 34, 1,  '팩', '2026-06-25', 'active'),  -- 딸기      D-9
-(1, 24, 1,  '팩', '2026-06-30', 'active'),  -- 우유      D-14
-(1, 35, 1,  '병', '2026-12-31', 'active'),  -- 간장      D-199
-(1, 36, 1,  '통', '2026-12-31', 'active'),  -- 된장      D-199
-(1, 37, 1,  '통', '2026-12-31', 'active'),  -- 고추장    D-199
-(1, 38, 1,  '병', '2026-12-31', 'active'),  -- 참기름    D-199
-(1, 40, 1,  '개', '2026-12-31', 'active');  -- 다진마늘  D-199
+(1, 23, 10, '개', CURDATE() + INTERVAL 0 DAY, 'active'),  -- 달걀      D-0 ⚠️
+(1, 26, 1,  '모', CURDATE() + INTERVAL 1 DAY, 'active'),  -- 두부      D-1
+(1,  4, 1,  '대', CURDATE() + INTERVAL 1 DAY, 'active'),  -- 대파      D-1
+(1, 20, 1,  '팩', CURDATE() + INTERVAL 1 DAY, 'active'),  -- 새우      D-1
+(1, 18, 2,  '마리',CURDATE() + INTERVAL 2 DAY,'active'),  -- 고등어    D-2
+(1,  9, 1,  '단', CURDATE() + INTERVAL 2 DAY, 'active'),  -- 시금치    D-2
+(1, 11, 1,  '봉', CURDATE() + INTERVAL 2 DAY, 'active'),  -- 상추      D-2
+(1, 21, 1,  '마리',CURDATE() + INTERVAL 2 DAY,'active'),  -- 오징어    D-2
+(1, 22, 1,  '봉', CURDATE() + INTERVAL 2 DAY, 'active'),  -- 바지락    D-2
+(1, 17, 1,  '팩', CURDATE() + INTERVAL 2 DAY, 'active'),  -- 소고기    D-2
+(1, 15, 1,  '팩', CURDATE() + INTERVAL 3 DAY, 'active'),  -- 닭가슴살  D-3
+(1, 13, 1,  '팩', CURDATE() + INTERVAL 3 DAY, 'active'),  -- 돼지고기  D-3
+(1, 33, 3,  '개', CURDATE() + INTERVAL 3 DAY, 'active'),  -- 바나나    D-3
+(1, 27, 1,  '팩', CURDATE() + INTERVAL 3 DAY, 'active'),  -- 순두부    D-3
+(1, 28, 1,  '팩', CURDATE() + INTERVAL 3 DAY, 'active'),  -- 표고버섯  D-3
+(1, 29, 1,  '봉', CURDATE() + INTERVAL 3 DAY, 'active'),  -- 팽이버섯  D-3
+(1,  3, 2,  '개', CURDATE() + INTERVAL 6 DAY, 'active'),  -- 양파      D-6
+(1,  1, 3,  '개', CURDATE() + INTERVAL 8 DAY, 'active'),  -- 감자      D-8
+(1, 34, 1,  '팩', CURDATE() + INTERVAL 9 DAY, 'active'),  -- 딸기      D-9
+(1, 24, 1,  '팩', CURDATE() + INTERVAL 4 DAY, 'active'),  -- 우유      D-4
+(1, 35, 1,  '병', CURDATE() + INTERVAL 199 DAY,'active'), -- 간장      D-199
+(1, 36, 1,  '통', CURDATE() + INTERVAL 199 DAY,'active'), -- 된장      D-199
+(1, 37, 1,  '통', CURDATE() + INTERVAL 199 DAY,'active'), -- 고추장    D-199
+(1, 38, 1,  '병', CURDATE() + INTERVAL 199 DAY,'active'), -- 참기름    D-199
+(1, 40, 1,  '개', CURDATE() + INTERVAL 199 DAY,'active'); -- 다진마늘  D-199
 
 -- 레시피 마스터
 INSERT INTO recipes (name, category, emoji) VALUES
@@ -377,7 +377,8 @@ ORDER BY ui.expires_at ASC;
 
 -- -------------------------------------------------------
 -- Q2. 레시피 추천 — 임박 재료 기반 스코어링
---     공식: 40×urgentRatio + 35×completeness + 15×absBonus + 10×seaRatio
+--     공식: 35×urgentRatio + 15×completeness + 40×absBonus + 10×seaRatio
+--     absBonus = LEAST(임박+주의 재료 수, 5) / 5  → 다재료 요리 우대
 -- -------------------------------------------------------
 WITH owned AS (
   SELECT i.name,
@@ -410,10 +411,10 @@ SELECT id, name, emoji,
        main_matched,
        main_missing,
        ROUND(
-         40 * urgent_matched / NULLIF(main_matched, 0)  -- urgentRatio
-       + 35 * main_matched   / NULLIF(main_total,   0)  -- completeness
-       + 15 * LEAST(main_matched, 8) / 8                -- absBonus (최대 8개)
-       + 10 * sea_matched    / NULLIF(sea_total,    0)   -- seaRatio
+         35 * urgent_matched / NULLIF(main_matched, 0)               -- urgentRatio
+       + 15 * main_matched   / NULLIF(main_total,   0)               -- completeness
+       + 40 * LEAST(urgent_matched + warn_matched, 5) / 5            -- absBonus (임박·주의 재료 절대 개수, 다재료 우대)
+       + 10 * sea_matched    / NULLIF(sea_total,    0)                -- seaRatio
        , 2) AS score
 FROM scored
 WHERE main_matched > 0
