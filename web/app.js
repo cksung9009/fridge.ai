@@ -207,6 +207,7 @@
     sumTotal:     $("#sumTotal"),
     bellDot:      $("#bellDot"),
     urgentScroll: $("#urgentScroll"),
+    guardianBanner: $("#guardianBanner"),
     homeReco:     $("#homeReco"),
     recoQueryHint:$("#recoQueryHint"),
     stockSearch:  $("#stockSearch"),
@@ -408,6 +409,88 @@
       + '</div>';
   }
 
+  /* ---- Guardian: AI 설명 룩업 ---- */
+  function getExplanation(top) {
+    var EXPL = window.FRIDGE_EXPLANATIONS;
+    if (!EXPL || !top) return null;
+    var urgent = top.urgentMain.slice().sort();
+    var warn   = top.warnMain.slice().sort();
+    var combined = urgent.concat(warn).sort();
+    var tries = [
+      combined.join("+"),
+      urgent.join("+"),
+      urgent.slice(0, 2).sort().join("+"),
+      urgent.slice(0, 1).join("+"),
+      warn.slice(0, 1).join("+")
+    ];
+    for (var i = 0; i < tries.length; i++) {
+      if (tries[i] && EXPL[tries[i]]) return EXPL[tries[i]];
+    }
+    return null;
+  }
+
+  /* ---- Guardian: 탄소 절약량 계산 (kg CO₂) ---- */
+  function findItem(name) {
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].name === name || toCanonical(items[i].name) === toCanonical(name)) return items[i];
+    }
+    return null;
+  }
+  function calcCarbonSaved(top) {
+    var CARBON = window.FRIDGE_CARBON;
+    if (!CARBON || !top) return 0;
+    var urgentNames = top.urgentMain.concat(top.warnMain);
+    var total = 0;
+    urgentNames.forEach(function(name) {
+      var c = CARBON[name];
+      if (!c) return;
+      var item = findItem(name);
+      var qty = item ? (parseFloat(item.qty) || 1) : 1;
+      total += qty * c.weightPerUnit * c.carbonPer100g / 100;
+    });
+    return Math.round(total * 100) / 100;
+  }
+
+  /* ---- Guardian: 설명 없을 때 템플릿 폴백 ---- */
+  function templateExplanation(top) {
+    var names = top.urgentMain.slice(0, 2);
+    if (!names.length) names = top.warnMain.slice(0, 1);
+    if (!names.length) return top.name + "을(를) 오늘 만들어보세요.";
+    var dStr = names.map(function(n) {
+      var it = findItem(n);
+      var d = it ? ddayOf(it.expiry) : 0;
+      return n + (d === 0 ? "(오늘 만료)" : d === 1 ? "(내일 만료)" : "(D-" + d + ")");
+    });
+    return dStr.join(", ") + "가 있어서 " + top.name + "을(를) 추천드려요.";
+  }
+
+  /* ---- Guardian 배너 렌더링 ---- */
+  function renderGuardian(scored) {
+    if (!el.guardianBanner) return;
+    if (!scored || !scored.length) {
+      el.guardianBanner.innerHTML = "";
+      el.guardianBanner.classList.remove("is-active");
+      return;
+    }
+    var top  = scored[0];
+    var expl = getExplanation(top);
+    var text = expl ? expl.text : templateExplanation(top);
+    var co2  = calcCarbonSaved(top);
+    var co2Html = co2 > 0
+      ? '<span class="guardian-carbon">🌱 CO₂ ' + co2.toFixed(2) + 'kg 절약</span>'
+      : "";
+    el.guardianBanner.innerHTML =
+      '<div class="guardian-head">'
+      + '<span class="guardian-label">오늘의 냉장고 가이드</span>'
+      + '</div>'
+      + '<p class="guardian-text">' + esc(text) + '</p>'
+      + '<div class="guardian-foot">'
+      + '<span class="guardian-recipe">' + esc((expl && expl.emoji) || top.emoji || "🍳") + " " + esc(top.name) + '</span>'
+      + co2Html
+      + '</div>';
+    el.guardianBanner.classList.add("is-active");
+  }
+
   function renderReco() {
     var scored = scoreRecipes();
     if (!scored.length) {
@@ -416,12 +499,14 @@
       el.recipeList.innerHTML = empty;
       el.recoQueryHint.textContent = "";
       el.recoQuery.textContent = "재료를 추가해 주세요";
+      renderGuardian(null);
       return;
     }
     el.recoQueryHint.textContent = "";
     el.recoQuery.textContent = scored[0].name;
     el.homeReco.innerHTML = scored.slice(0,3).map(recoCardHTML).join("");
     el.recipeList.innerHTML = scored.slice(0,20).map(recoCardHTML).join("");
+    renderGuardian(scored);
   }
 
   function renderChips() {

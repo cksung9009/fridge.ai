@@ -868,3 +868,59 @@ h1, h2, h3 { letter-spacing: -0.02em; }
   font-size: 1.6rem;
 }
 #homeReco .reco-body  { padding: 0; flex: 1; }
+
+/* ===== Guardian Banner ===== */
+.guardian-banner {
+  display: none;
+  margin: 12px 16px 0;
+  padding: 16px 18px 14px;
+  background: linear-gradient(135deg, var(--green-900) 0%, var(--green-700) 100%);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+  color: #fff;
+}
+.guardian-banner.is-active { display: block; }
+
+.guardian-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.guardian-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+.guardian-text {
+  font-size: 0.95rem;
+  line-height: 1.55;
+  margin: 0 0 14px;
+  color: rgba(255,255,255,0.92);
+}
+.guardian-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.guardian-recipe {
+  font-size: 0.97rem;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(255,255,255,0.15);
+  padding: 5px 12px;
+  border-radius: 20px;
+}
+.guardian-carbon {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--green-300);
+  background: rgba(255,255,255,0.1);
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
