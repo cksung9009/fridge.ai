@@ -488,8 +488,8 @@ h1, h2, h3 { letter-spacing: -0.02em; }
 .fab {
   position: fixed;
   bottom: calc(var(--tabbar-h) + 16px);
-  left: 50%;
-  transform: translateX(calc(var(--appw) / 2 - 50% - 18px));
+  right: 18px;
+  left: auto;
   width: 56px; height: 56px;
   border-radius: 50%;
   background: var(--green-600);
@@ -501,7 +501,7 @@ h1, h2, h3 { letter-spacing: -0.02em; }
   z-index: 35;
   transition: transform 0.15s ease, background 0.15s ease;
 }
-.fab:active { transform: translateX(calc(var(--appw) / 2 - 50% - 18px)) scale(0.92); }
+.fab:active { transform: scale(0.92); }
 
 /* ===== Tab bar ===== */
 .tabbar {
@@ -678,7 +678,7 @@ h1, h2, h3 { letter-spacing: -0.02em; }
 }
 @media (min-width: 600px) {
   .tabbar { bottom: 0; border-radius: 0; }
-  .fab { bottom: calc(var(--tabbar-h) + 16px); }
+  .fab { bottom: calc(var(--tabbar-h) + 16px); right: calc((100vw - var(--appw)) / 2 + 18px); }
   .toast { bottom: calc(var(--tabbar-h) + 24px); }
 }
 
