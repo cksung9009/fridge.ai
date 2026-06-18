@@ -1,8 +1,8 @@
 # fridge.ai — ERD & Query Definition
 
-- **문서 버전:** 0.4
-- **작성일:** 2026-06-16
-- **상태:** 기획 확정 (demo.sql v0.3 동기화 — 스코어 공식 app.js 일치, COOKRCP01 연동 기재)
+- **문서 버전:** 0.6
+- **작성일:** 2026-06-18
+- **상태:** 기획 확정 (소비기한 기능 반영 — shelf_days·expiry_ext_days 컬럼 추가, expires_at 소비기한 기준으로 전환)
 
 ---
 
@@ -87,6 +87,8 @@
 | default_unit | VARCHAR(20) | 개, g, mL, 팩, 봉 등 |
 | weight_per_unit_g | DECIMAL(8,2) | 1단위 기본 무게 (감자 1개=150g) |
 | carbon_per_100g | DECIMAL(8,4) | 탄소 발자국 (kg CO₂eq / 100g) |
+| shelf_days | INT NOT NULL DEFAULT 7 | 냉장 보관 소비기한(일) — 농진청·식약처 기준 |
+| expiry_ext_days | INT NOT NULL DEFAULT 0 | 유통기한→소비기한 연장일 (0=해당없음) — 식약처 소비기한 참고값 고시(2023) |
 | created_at | TIMESTAMP DEFAULT NOW() | |
 
 ### `users`
@@ -106,7 +108,7 @@
 | ingredient_id | INT FK → ingredients | |
 | quantity | DECIMAL(8,2) | 수량 |
 | unit | VARCHAR(20) | 개, g, mL 등 |
-| expires_at | DATE | 유통기한 (D-day 계산 기준) |
+| expires_at | DATE | 소비기한 (D-day 계산 기준) |
 | status | ENUM('active','used','wasted') DEFAULT 'active' | |
 | created_at | TIMESTAMP DEFAULT NOW() | |
 | updated_at | TIMESTAMP | |
@@ -307,6 +309,9 @@ ON DUPLICATE KEY UPDATE requested_at = NOW();
 | youtube_video_id | recipe_id (FK)로 교체 | 요리/메뉴 DB 도입으로 레시피 참조 구조화 |
 | is_required | recipe_ingredients 컬럼 | 필수/선택 재료 구분으로 스코어링 정밀도 향상 |
 | 인덱스 | 4개 | 핵심 쿼리 full scan 방지 |
+| shelf_days | ingredients 컬럼 | 재료 추가 시 소비기한 자동완성 (농진청·식약처 기준) |
+| expiry_ext_days | ingredients 컬럼 (0=미지원) | 유통기한 입력 시 소비기한 자동 변환 — 식약처 소비기한 참고값 고시(2023) 기준, 신선식품은 법적 유통기한 없어 0 |
+| expires_at 의미 변경 | user_inventory: 유통기한→소비기한 | 앱이 소비기한 기준으로 D-day 계산하므로 저장 값도 소비기한으로 통일 |
 
 ---
 
@@ -319,6 +324,7 @@ ON DUPLICATE KEY UPDATE requested_at = NOW();
 | 0.3 | 2026-06-16 | MANIFESTO v0.3 반영 — recipes·recipe_ingredients·ingredient_requests 추가, consumption_logs.youtube_video_id → recipe_id 교체, 레시피 스코어링 쿼리 추가 |
 | 0.4 | 2026-06-16 | demo.sql v0.3 동기화 — 카테고리 10종·재료 40종·레시피 10종 시드 추가, 스코어 공식 app.js 완전 일치(urgentRatio/completeness/absBonus/seaRatio), COOKRCP01 연동 결정 기재, Q2 YouTube검색→레시피추천 교체, Q8 레시피 참고 빈도 쿼리 추가 |
 | 0.5 | 2026-06-17 | 스코어링 공식 개정 — absBonus 기준을 전체 매칭 수에서 임박·주의 재료 절대 개수로 변경, 가중치 재조정(35/15/40/10), 재고 날짜 CURDATE() 상대값으로 전환 |
+| 0.6 | 2026-06-18 | 소비기한 기능 반영 — ingredients에 shelf_days·expiry_ext_days 컬럼 추가, user_inventory.expires_at 설명 소비기한으로 변경 |
 
 ---
 
