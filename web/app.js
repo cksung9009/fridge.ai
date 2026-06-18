@@ -9,7 +9,7 @@
   DATA.ingredients.forEach(function(it){ MASTER[it.name] = it; });
   var MASTER_NAMES = DATA.ingredients.map(function(it){ return it.name; });
   var QUICK = ["달걀","우유","양파","대파","두부","감자","당근","닭가슴살","애호박"];
-  var DEMO_USER = { name: "김민준", initial: "김", displayName: "민준" };
+  var DEMO_USER = { name: "임스", initial: "임", displayName: "스" };
 
   /* ---- 재료 정규화: 별칭 → 표준명 ---- */
   var CANONICAL = {
