@@ -434,6 +434,51 @@ h1, h2, h3 { letter-spacing: -0.02em; }
   background: rgba(0,0,0,0.12); border-radius: 10px; padding: 10px 14px;
 }
 .rp-hero-sub strong { font-weight: 800; opacity: 1; }
+/* 레벨 진행 카드 */
+.rp-level-card {
+  margin-top: 10px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 16px 18px 14px;
+}
+.rp-level-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.rp-level-left { display: flex; align-items: center; gap: 10px; }
+.rp-level-emoji { font-size: 2rem; line-height: 1; }
+.rp-level-label { font-size: 1rem; font-weight: 800; color: var(--ink); }
+.rp-level-sub { font-size: 0.8rem; color: var(--ink-soft); margin-top: 2px; }
+.rp-level-next-badge {
+  font-size: 0.78rem; font-weight: 700;
+  background: var(--green-100); color: var(--green-700);
+  border: 1px solid var(--green-300);
+  border-radius: 999px; padding: 4px 10px;
+  white-space: nowrap;
+}
+.rp-level-bar-bg {
+  height: 10px;
+  background: var(--tint);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.rp-level-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green-500), var(--green-700));
+  border-radius: 999px;
+  transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  width: 0%;
+}
+.rp-level-msg {
+  font-size: 0.86rem; font-weight: 700;
+  color: var(--green-700);
+  text-align: center;
+}
+
 .report-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

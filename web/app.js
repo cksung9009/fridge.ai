@@ -573,6 +573,16 @@
     }).join("");
   }
 
+  var LEVELS = [
+    { lv: 1, e: "🥕", name: "냉장고 새내기", min: 0,   max: 5   },
+    { lv: 2, e: "🌱", name: "새싹 절약가",   min: 5,   max: 15  },
+    { lv: 3, e: "🌿", name: "그린 쿠커",     min: 15,  max: 30  },
+    { lv: 4, e: "♻️", name: "절약 고수",     min: 30,  max: 50  },
+    { lv: 5, e: "🌍", name: "지구 지킴이",   min: 50,  max: 80  },
+    { lv: 6, e: "🏆", name: "냉장고 마스터", min: 80,  max: 120 },
+    { lv: 7, e: "👑", name: "전설의 냉장고", min: 120, max: Infinity },
+  ];
+
   function renderReport() {
     seedLog();
     var log     = loadLog();
@@ -606,6 +616,29 @@
     set("rpCook",      cooked.length + "회");
     set("rpCO2",       co2 + "kg");
     set("rpWater",     water + "L");
+
+    /* ── 레벨 진행도 (누적 전체 기준) ── */
+    var totalCooked = log.filter(function(e){ return e.act === "cook"; }).length;
+    var curLv = LEVELS[LEVELS.length - 1];
+    for (var li = 0; li < LEVELS.length; li++) {
+      if (totalCooked < LEVELS[li].max) { curLv = LEVELS[li]; break; }
+    }
+    var nextLv = LEVELS[Math.min(curLv.lv, LEVELS.length - 1)];
+    var isMax  = curLv.lv === LEVELS[LEVELS.length - 1].lv;
+    var pct    = isMax ? 100 : Math.round((totalCooked - curLv.min) / (curLv.max - curLv.min) * 100);
+    var remain = isMax ? 0 : curLv.max - totalCooked;
+
+    set("rpLevelEmoji",    curLv.e);
+    set("rpLevelLabel",    "Lv." + curLv.lv + " " + curLv.name);
+    set("rpLevelSub",      totalCooked + " / " + (isMax ? "∞" : curLv.max) + "개 구출");
+    set("rpLevelNextBadge", isMax ? "최고 레벨 👑" : "다음 " + nextLv.e);
+    set("rpLevelMsg", isMax
+      ? "최고 레벨 달성! 당신은 냉장고의 전설 👑"
+      : "딱 " + remain + "개만 더 구출하면 " + nextLv.e + " " + nextLv.name + "! 🔥");
+    requestAnimationFrame(function() {
+      var bar = $("#rpLevelBarFill");
+      if (bar) bar.style.width = pct + "%";
+    });
 
     /* ── 구출 재료 목록 ── */
     var names  = cooked.map(function(e){ return e.name; });
