@@ -695,6 +695,7 @@ h1, h2, h3 { letter-spacing: -0.02em; }
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
+  margin-top: 16px;
 }
 
 /* All cards: flex column, left-aligned */
