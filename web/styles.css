@@ -478,6 +478,55 @@ h1, h2, h3 { letter-spacing: -0.02em; }
   color: var(--green-700);
   text-align: center;
 }
+.rp-level-emoji, .rp-level-next-badge { cursor: pointer; }
+.rp-level-next-badge:active { opacity: 0.7; }
+
+/* 레벨 전체 모달 */
+.level-modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 60;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 18px;
+}
+.level-modal-overlay.open { display: flex; }
+.level-modal {
+  width: 100%; max-width: 360px;
+  background: var(--cream-bg);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: 0 24px 60px -12px rgba(0,0,0,0.35);
+  animation: fade 0.2s ease;
+}
+.level-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.level-modal-head h3 { font-size: 1rem; font-weight: 800; }
+.level-modal-body { padding: 8px 0 8px; }
+.level-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 18px;
+  transition: background 0.1s;
+}
+.level-row.is-current {
+  background: var(--green-100);
+  border-left: 3px solid var(--green-600);
+  padding-left: 15px;
+}
+.level-row-emoji { font-size: 1.5rem; flex-shrink: 0; }
+.level-row-info { flex: 1; min-width: 0; }
+.level-row-name { font-size: 0.9rem; font-weight: 700; color: var(--ink); }
+.level-row-range { font-size: 0.76rem; color: var(--ink-soft); margin-top: 1px; }
+.level-row-lv {
+  font-size: 0.72rem; font-weight: 800;
+  color: var(--green-700); background: var(--green-100);
+  border-radius: 999px; padding: 3px 8px;
+  flex-shrink: 0;
+}
 
 .report-grid {
   display: grid;

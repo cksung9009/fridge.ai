@@ -222,6 +222,9 @@
     tabs:         document.querySelectorAll(".tab"),
     overlay:      $("#sheetOverlay"),
     sheetClose:   $("#sheetClose"),
+    levelModalOverlay: $("#levelModalOverlay"),
+    levelModalClose:   $("#levelModalClose"),
+    levelModalBody:    $("#levelModalBody"),
     editOverlay:  $("#editOverlay"),
     editSheetClose: $("#editSheetClose"),
     editQtyForm:  $("#editQtyForm"),
@@ -628,6 +631,7 @@
     var pct    = isMax ? 100 : Math.round((totalCooked - curLv.min) / (curLv.max - curLv.min) * 100);
     var remain = isMax ? 0 : curLv.max - totalCooked;
 
+    currentLevelLv = curLv.lv;
     set("rpLevelEmoji",    curLv.e);
     set("rpLevelLabel",    "Lv." + curLv.lv + " " + curLv.name);
     set("rpLevelSub",      totalCooked + " / " + (isMax ? "∞" : curLv.max) + "개 구출");
@@ -717,6 +721,27 @@
     el.addForm.reset();
     updateNameState();
   }
+
+  function openLevelModal(currentLv) {
+    el.levelModalBody.innerHTML = LEVELS.map(function(lv) {
+      var range = lv.max === Infinity ? lv.min + "개 이상" : lv.min + "~" + (lv.max - 1) + "개";
+      var isCur = lv.lv === currentLv;
+      return '<div class="level-row' + (isCur ? ' is-current' : '') + '">'
+        + '<span class="level-row-emoji">' + lv.e + '</span>'
+        + '<div class="level-row-info">'
+        + '<div class="level-row-name">' + lv.name + (isCur ? ' ← 현재' : '') + '</div>'
+        + '<div class="level-row-range">' + range + '</div>'
+        + '</div>'
+        + '<span class="level-row-lv">Lv.' + lv.lv + '</span>'
+        + '</div>';
+    }).join("");
+    el.levelModalOverlay.classList.add("open");
+  }
+  function closeLevelModal() {
+    el.levelModalOverlay.classList.remove("open");
+  }
+
+  var currentLevelLv = 1;
 
   var editTargetId = null;
   function openEditSheet(it) {
@@ -863,6 +888,14 @@
       } else {
         toast((it ? it.name : "재료") + " 폐기 처리했어요");
       }
+    });
+
+    /* 레벨 모달 */
+    el.levelModalClose.addEventListener("click", closeLevelModal);
+    el.levelModalOverlay.addEventListener("click", function(e){ if (e.target === el.levelModalOverlay) closeLevelModal(); });
+    document.addEventListener("click", function(e) {
+      if (e.target.id === "rpLevelEmoji" || e.target.id === "rpLevelNextBadge")
+        openLevelModal(currentLevelLv);
     });
 
     /* 수량 수정 시트 */
