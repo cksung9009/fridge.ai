@@ -232,10 +232,13 @@
     editItemName: $("#editItemName"),
     quickAdd:     $("#quickAdd"),
     addForm:      $("#addForm"),
-    inName:       $("#inName"),
-    inQty:        $("#inQty"),
-    inExpiry:     $("#inExpiry"),
-    expiryHint:   $("#expiryHint"),
+    inName:           $("#inName"),
+    inQty:            $("#inQty"),
+    inExpiry:         $("#inExpiry"),
+    inSellBy:         $("#inSellBy"),
+    expiryHint:       $("#expiryHint"),
+    expiryLabel:      $("#expiryLabel"),
+    expiryModeChips:  $("#expiryModeChips"),
     ingredientList: $("#ingredientList"),
     catAuto:      $("#catAuto"),
     nameHint:     $("#nameHint"),
@@ -709,8 +712,32 @@
   }
 
   /* ---- 시트 ---- */
+  var expiryInputMode = "consume";
+
+  function setExpiryMode(mode, extDays) {
+    expiryInputMode = mode;
+    el.expiryModeChips.querySelectorAll(".emode-chip").forEach(function(c) {
+      c.classList.toggle("is-active", c.dataset.mode === mode);
+    });
+    if (mode === "sellby") {
+      el.expiryLabel.textContent = "유통기한";
+      el.inSellBy.style.display = "";
+      el.inExpiry.style.display = "none";
+      el.inExpiry.removeAttribute("required");
+      el.inSellBy.setAttribute("required", "");
+      el.expiryHint.textContent = "";
+    } else {
+      el.expiryLabel.textContent = "소비기한";
+      el.inSellBy.style.display = "none";
+      el.inExpiry.style.display = "";
+      el.inExpiry.setAttribute("required", "");
+      el.inSellBy.removeAttribute("required");
+    }
+  }
+
   function openSheet() {
     el.overlay.classList.add("open");
+    setExpiryMode("consume");
     el.inExpiry.value = toISO(addDays(5));
     el.inName.value = "";
     updateNameState();
@@ -718,6 +745,7 @@
   }
   function closeSheet() {
     el.overlay.classList.remove("open");
+    setExpiryMode("consume");
     el.addForm.reset();
     updateNameState();
   }
@@ -767,6 +795,8 @@
       el.catAuto.className = "cat-auto";
       el.nameHint.textContent = "";
       el.expiryHint.textContent = "";
+      el.expiryModeChips.querySelector("[data-mode='sellby']").disabled = true;
+      if (expiryInputMode === "sellby") setExpiryMode("consume");
       return;
     }
     var m = MASTER[name];
@@ -775,7 +805,15 @@
       el.catAuto.className = "cat-auto is-set";
       el.nameHint.textContent = "";
       el.inQty.placeholder = "예: 1" + m.unit;
-      if (m.shelfDays) {
+      var sellbyBtn = el.expiryModeChips.querySelector("[data-mode='sellby']");
+      if (m.expiryExtDays) {
+        sellbyBtn.disabled = false;
+        sellbyBtn.title = "유통기한 + " + m.expiryExtDays + "일 → 소비기한";
+      } else {
+        sellbyBtn.disabled = true;
+        if (expiryInputMode === "sellby") setExpiryMode("consume");
+      }
+      if (expiryInputMode === "consume" && m.shelfDays) {
         el.inExpiry.value = toISO(addDays(m.shelfDays));
         el.expiryHint.textContent = "냉장 소비기한 기준 " + m.shelfDays + "일";
       }
@@ -784,6 +822,8 @@
       el.catAuto.className = "cat-auto";
       el.nameHint.innerHTML = "DB에 없는 재료예요. <button type=\"button\" class=\"req-btn\" data-req=\"" + esc(name) + "\">+ 추가 요청</button>";
       el.expiryHint.textContent = "";
+      el.expiryModeChips.querySelector("[data-mode='sellby']").disabled = true;
+      if (expiryInputMode === "sellby") setExpiryMode("consume");
     }
   }
   function renderQuickAdd() {
@@ -914,6 +954,34 @@
       toast("남은 수량을 " + newQty + "으로 수정했어요");
     });
 
+    /* 소비기한/유통기한 모드 토글 */
+    el.expiryModeChips.addEventListener("click", function(e) {
+      var chip = e.target.closest(".emode-chip");
+      if (!chip || chip.disabled) return;
+      var m = MASTER[el.inName.value.trim()];
+      setExpiryMode(chip.dataset.mode, m ? m.expiryExtDays : 0);
+      if (chip.dataset.mode === "consume" && m && m.shelfDays) {
+        el.inExpiry.value = toISO(addDays(m.shelfDays));
+        el.expiryHint.textContent = "냉장 소비기한 기준 " + m.shelfDays + "일";
+      }
+    });
+
+    /* 유통기한 입력 → 소비기한 자동계산 */
+    el.inSellBy.addEventListener("change", function() {
+      var sellVal = el.inSellBy.value;
+      if (!sellVal) { el.expiryHint.textContent = ""; return; }
+      var m = MASTER[el.inName.value.trim()];
+      var ext = m ? (m.expiryExtDays || 0) : 0;
+      var sobi = new Date(sellVal);
+      sobi.setDate(sobi.getDate() + ext);
+      el.inExpiry.value = toISO(sobi);
+      var sellFmt = sellVal.slice(5).replace("-", "/");
+      var sobiFmt = toISO(sobi).slice(5).replace("-", "/");
+      el.expiryHint.textContent = ext
+        ? "유통기한 " + sellFmt + " → 소비기한 " + sobiFmt + " (+" + ext + "일)"
+        : "유통기한 = 소비기한 (연장 기준 없음)";
+    });
+
     /* 재료 이름 입력 */
     el.inName.addEventListener("input", updateNameState);
 
@@ -943,6 +1011,11 @@
         el.nameHint.textContent = "DB에 등록된 재료만 추가할 수 있어요.";
         toast("목록에 있는 재료만 추가할 수 있어요");
         el.inName.focus();
+        return;
+      }
+      if (expiryInputMode === "sellby" && !el.inSellBy.value) {
+        el.expiryHint.textContent = "유통기한을 입력해주세요";
+        el.inSellBy.focus();
         return;
       }
       addItem(name, MASTER[name].cat, el.inQty.value || "", el.inExpiry.value);

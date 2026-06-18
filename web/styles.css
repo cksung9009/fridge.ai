@@ -736,6 +736,29 @@ h1, h2, h3 { letter-spacing: -0.02em; }
 }
 .expiry-hint { color: var(--green-700); }
 
+.expiry-mode-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px;
+}
+.expiry-mode-row .field-label { margin-bottom: 0; }
+.expiry-mode-chips { display: flex; gap: 4px; }
+.emode-chip {
+  font-size: 0.72rem; font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--cream-bg);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.emode-chip.is-active {
+  background: var(--green-600);
+  border-color: var(--green-600);
+  color: #fff;
+}
+.emode-chip:disabled { opacity: 0.35; cursor: default; }
+
 .btn-primary {
   background: var(--green-600);
   color: #fff;

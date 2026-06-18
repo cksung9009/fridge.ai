@@ -235,7 +235,14 @@
             <input id="inQty" name="qty" type="text" placeholder="예: 3개 / 500g" />
           </div>
           <div>
-            <label class="field-label" for="inExpiry">소비기한</label>
+            <div class="expiry-mode-row">
+              <label class="field-label" id="expiryLabel">소비기한</label>
+              <div class="expiry-mode-chips" id="expiryModeChips">
+                <button type="button" class="emode-chip is-active" data-mode="consume">소비기한</button>
+                <button type="button" class="emode-chip" data-mode="sellby" id="emodeSelby">유통기한 입력</button>
+              </div>
+            </div>
+            <input id="inSellBy" type="date" style="display:none" />
             <input id="inExpiry" name="expiry" type="date" required />
             <span class="field-hint expiry-hint" id="expiryHint"></span>
           </div>
