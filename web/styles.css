@@ -695,7 +695,7 @@ h1, h2, h3 { letter-spacing: -0.02em; }
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
-  margin-top: 16px;
+  margin-top: 10px;
 }
 
 /* All cards: flex column, left-aligned */
@@ -873,7 +873,7 @@ h1, h2, h3 { letter-spacing: -0.02em; }
 /* ===== Guardian Banner ===== */
 .guardian-banner {
   display: none;
-  margin: 12px 0 20px;
+  margin: 12px 0 0;
   padding: 16px 18px 14px;
   background: linear-gradient(135deg, var(--green-900) 0%, var(--green-700) 100%);
   border-radius: var(--r-lg);
