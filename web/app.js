@@ -232,6 +232,7 @@
     inName:       $("#inName"),
     inQty:        $("#inQty"),
     inExpiry:     $("#inExpiry"),
+    expiryHint:   $("#expiryHint"),
     ingredientList: $("#ingredientList"),
     catAuto:      $("#catAuto"),
     nameHint:     $("#nameHint"),
@@ -707,6 +708,7 @@
       el.catAuto.textContent = "재료를 선택하면 자동으로 정해져요";
       el.catAuto.className = "cat-auto";
       el.nameHint.textContent = "";
+      el.expiryHint.textContent = "";
       return;
     }
     var m = MASTER[name];
@@ -715,10 +717,15 @@
       el.catAuto.className = "cat-auto is-set";
       el.nameHint.textContent = "";
       el.inQty.placeholder = "예: 1" + m.unit;
+      if (m.shelfDays) {
+        el.inExpiry.value = toISO(addDays(m.shelfDays));
+        el.expiryHint.textContent = "냉장 소비기한 기준 " + m.shelfDays + "일";
+      }
     } else {
       el.catAuto.textContent = "—";
       el.catAuto.className = "cat-auto";
       el.nameHint.innerHTML = "DB에 없는 재료예요. <button type=\"button\" class=\"req-btn\" data-req=\"" + esc(name) + "\">+ 추가 요청</button>";
+      el.expiryHint.textContent = "";
     }
   }
   function renderQuickAdd() {

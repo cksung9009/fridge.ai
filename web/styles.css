@@ -640,6 +640,7 @@ h1, h2, h3 { letter-spacing: -0.02em; }
   font-weight: 600;
   color: var(--tomato);
 }
+.expiry-hint { color: var(--green-700); }
 
 .btn-primary {
   background: var(--green-600);
