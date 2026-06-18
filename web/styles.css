@@ -385,7 +385,18 @@ h1, h2, h3 { letter-spacing: -0.02em; }
   color: var(--ink-soft);
 }
 .mini-btn.cook { color: var(--green-700); border-color: var(--green-300); background: var(--green-100); }
+.mini-btn.edit-qty { color: var(--amber-ink); border-color: #f5d9a4; background: var(--amber-bg); }
 .mini-btn:active { transform: scale(0.94); }
+
+.edit-item-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: var(--tint);
+  border-radius: var(--r-md);
+}
 
 .empty {
   text-align: center;

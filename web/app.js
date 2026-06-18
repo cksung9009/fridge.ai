@@ -222,6 +222,11 @@
     tabs:         document.querySelectorAll(".tab"),
     overlay:      $("#sheetOverlay"),
     sheetClose:   $("#sheetClose"),
+    editOverlay:  $("#editOverlay"),
+    editSheetClose: $("#editSheetClose"),
+    editQtyForm:  $("#editQtyForm"),
+    editQtyInput: $("#editQtyInput"),
+    editItemName: $("#editItemName"),
     quickAdd:     $("#quickAdd"),
     addForm:      $("#addForm"),
     inName:       $("#inName"),
@@ -561,6 +566,7 @@
         + '<span class="dday ' + ddayClass(d) + '">' + ddayLabel(d) + '</span>'
         + '<div class="si-actions">'
         + '<button class="mini-btn cook" data-act="cook" data-id="' + it.id + '">조리완료</button>'
+        + '<button class="mini-btn edit-qty" data-act="editqty" data-id="' + it.id + '">수량수정</button>'
         + '<button class="mini-btn" data-act="trash" data-id="' + it.id + '">폐기</button>'
         + '</div></div></div>';
     }).join("");
@@ -677,6 +683,19 @@
     el.addForm.reset();
     updateNameState();
   }
+
+  var editTargetId = null;
+  function openEditSheet(it) {
+    editTargetId = it.id;
+    el.editItemName.textContent = it.name + (it.qty ? "  현재: " + it.qty : "");
+    el.editQtyInput.value = it.qty || "";
+    el.editOverlay.classList.add("open");
+    setTimeout(function(){ el.editQtyInput.focus(); }, 50);
+  }
+  function closeEditSheet() {
+    el.editOverlay.classList.remove("open");
+    editTargetId = null;
+  }
   function renderIngredientOptions() {
     el.ingredientList.innerHTML = MASTER_NAMES.map(function(n){
       return '<option value="' + esc(n) + '"></option>';
@@ -790,6 +809,10 @@
       var btn = e.target.closest("[data-act]");
       if (!btn) return;
       var it = items.filter(function(x){ return x.id === btn.dataset.id; })[0];
+      if (btn.dataset.act === "editqty") {
+        if (it) openEditSheet(it);
+        return;
+      }
       items = items.filter(function(x){ return x.id !== btn.dataset.id; });
       renderAll();
       var log = loadLog();
@@ -800,6 +823,22 @@
       } else {
         toast((it ? it.name : "재료") + " 폐기 처리했어요");
       }
+    });
+
+    /* 수량 수정 시트 */
+    el.editSheetClose.addEventListener("click", closeEditSheet);
+    el.editOverlay.addEventListener("click", function(e){ if (e.target === el.editOverlay) closeEditSheet(); });
+    el.editQtyForm.addEventListener("submit", function(e) {
+      e.preventDefault();
+      var newQty = el.editQtyInput.value.trim();
+      if (!newQty || !editTargetId) return;
+      items = items.map(function(x) {
+        return x.id === editTargetId ? Object.assign({}, x, { qty: newQty }) : x;
+      });
+      save();
+      renderAll();
+      closeEditSheet();
+      toast("남은 수량을 " + newQty + "으로 수정했어요");
     });
 
     /* 재료 이름 입력 */

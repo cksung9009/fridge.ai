@@ -227,6 +227,23 @@
     </div>
   </div>
 
+  <!-- ===== Edit qty sheet ===== -->
+  <div class="sheet-overlay" id="editOverlay">
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="editSheetTitle">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <h3 id="editSheetTitle">남은 수량 수정</h3>
+        <button class="icon-btn" id="editSheetClose" aria-label="닫기">✕</button>
+      </div>
+      <div class="edit-item-name" id="editItemName"></div>
+      <form id="editQtyForm" class="add-form">
+        <label class="field-label" for="editQtyInput">남은 수량</label>
+        <input id="editQtyInput" type="text" placeholder="예: 200g / 2개" required autocomplete="off" />
+        <button type="submit" class="btn-primary btn-block">수량 저장</button>
+      </form>
+    </div>
+  </div>
+
   <!-- ===== Toast ===== -->
   <div class="toast" id="toast" hidden></div>
 
