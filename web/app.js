@@ -581,7 +581,7 @@
         + '<span class="dday ' + ddayClass(d) + '">' + ddayLabel(d) + '</span>'
         + '<div class="si-actions">'
         + '<button class="mini-btn cook" data-act="cook" data-id="' + it.id + '">조리완료</button>'
-        + '<button class="mini-btn edit-qty" data-act="editqty" data-id="' + it.id + '">수량수정</button>'
+        + '<button class="mini-btn edit-qty" data-act="editqty" data-id="' + it.id + '">부분사용</button>'
         + '<button class="mini-btn" data-act="trash" data-id="' + it.id + '">폐기</button>'
         + '</div></div></div>';
     }
@@ -610,15 +610,18 @@
     var log     = loadLog();
     var month   = toISO(new Date()).slice(0, 7);
     var mLog    = log.filter(function(e){ return e.date.startsWith(month); });
-    var cooked  = mLog.filter(function(e){ return e.act === "cook"; });
+    var cooked   = mLog.filter(function(e){ return e.act === "cook"; });
+    var partials = mLog.filter(function(e){ return e.act === "partial"; });
 
     /* ── 핵심 수치 계산 ── */
-    var saved   = cooked.length;
-    var wasteG  = saved * 150;                         /* 재료당 평균 150g */
-    var bags    = Math.floor(wasteG / 500);            /* 3L 봉투 1장 = 500g */
-    var envCost = Math.round(wasteG * 3);              /* 3,000원/kg — 사회적 처리비용(수거+처리+온실가스) */
-    var co2     = (saved * 0.13).toFixed(1);           /* 재료당 CO₂ 0.13kg */
-    var water   = saved * 30;                          /* 재료당 물 30L */
+    var saved      = cooked.length;                      /* 구출 재료 수 (완전 소진만) */
+    var partialG   = partials.reduce(function(s,e){ return s + (e.weightG || 0); }, 0);
+    var wasteG     = saved * 150 + partialG;             /* 완전소진 평균150g + 부분사용 실측값 */
+    var bags       = Math.floor(wasteG / 500);           /* 3L 봉투 1장 = 500g */
+    var envCost    = Math.round(wasteG * 3);             /* 3,000원/kg — 사회적 처리비용 */
+    var totalUses  = cooked.length + partials.length;    /* 조리완료 + 부분사용 합산 */
+    var co2        = (wasteG * 0.00087).toFixed(1);     /* 음식물 폐기 CO₂ 0.87kg/kg */
+    var water      = Math.round(wasteG * 0.2);          /* 절약 물 0.2L/g */
 
     /* ── 뱃지 ── */
     var badge = saved >= 25 ? { e: "🏆", t: "냉장고 마스터" }
@@ -635,7 +638,7 @@
 
     /* ── 수치 카드 ── */
     set("rpEnvCost",   "₩" + envCost.toLocaleString());
-    set("rpCook",      cooked.length + "회");
+    set("rpCook",      totalUses + "회");
     set("rpCO2",       co2 + "kg");
     set("rpWater",     water + "L");
 
@@ -679,7 +682,7 @@
     for (var i = 6; i >= 0; i--) {
       var d = new Date(TODAY); d.setDate(d.getDate() - i);
       var iso = toISO(d);
-      var cnt = log.filter(function(e){ return e.date === iso && e.act === "cook"; }).length;
+      var cnt = log.filter(function(e){ return e.date === iso && (e.act === "cook" || e.act === "partial"); }).length;
       dayCounts.push({ label: dayNames[d.getDay()], cnt: cnt });
     }
     var maxCnt = Math.max.apply(null, dayCounts.map(function(d){ return d.cnt; })) || 1;
@@ -790,8 +793,12 @@
   var editTargetId = null;
   function openEditSheet(it) {
     editTargetId = it.id;
-    el.editItemName.textContent = it.name + (it.qty ? "  현재: " + it.qty : "");
-    el.editQtyInput.value = it.qty || "";
+    el.editItemName.textContent = it.name + (it.qty ? "  현재: " + it.qty : "  (수량 미등록)");
+    el.editQtyInput.value = "";
+    var unitHint = it.qty ? it.qty.replace(/^[\d.]+\s*/, "") : "";
+    el.editQtyInput.placeholder = unitHint
+      ? "사용한 양 (예: 1" + unitHint + ", 2" + unitHint + ")"
+      : "사용한 양 (예: 2개, 200g)";
     el.editOverlay.classList.add("open");
     setTimeout(function(){ el.editQtyInput.focus(); }, 50);
   }
@@ -859,6 +866,28 @@
       return num + (mA[2] ? mA[2] : "");
     }
     return a + " + " + b;
+  }
+
+  function subtractQty(current, used) {
+    var mC = current.match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
+    var mU = used.match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
+    if (!mC || !mU) return null;
+    var unitC = mC[2].trim(), unitU = mU[2].trim();
+    if (unitC !== unitU) return null;
+    var rem = parseFloat(mC[1]) - parseFloat(mU[1]);
+    var usedNum = parseFloat(mU[1]);
+    if (rem <= 0) return { remaining: null, usedNum: usedNum, unit: unitU };
+    var s = rem % 1 === 0 ? String(Math.round(rem)) : String(rem);
+    return { remaining: s + (unitU ? unitU : ""), usedNum: usedNum, unit: unitU };
+  }
+
+  function weightFromUsed(usedNum, unit) {
+    var u = (unit || "").toLowerCase();
+    if (u === "g") return usedNum;
+    if (u === "kg") return Math.round(usedNum * 1000);
+    if (u === "ml") return usedNum;
+    if (u === "l") return Math.round(usedNum * 1000);
+    return Math.round(usedNum * 150);
   }
 
   function addItem(name, cat, qty, expiry) {
@@ -983,15 +1012,46 @@
     el.editOverlay.addEventListener("click", function(e){ if (e.target === el.editOverlay) closeEditSheet(); });
     el.editQtyForm.addEventListener("submit", function(e) {
       e.preventDefault();
-      var newQty = el.editQtyInput.value.trim();
-      if (!newQty || !editTargetId) return;
-      items = items.map(function(x) {
-        return x.id === editTargetId ? Object.assign({}, x, { qty: newQty }) : x;
-      });
-      save();
-      renderAll();
-      closeEditSheet();
-      toast("남은 수량을 " + newQty + "으로 수정했어요");
+      var usedInput = el.editQtyInput.value.trim();
+      if (!usedInput || !editTargetId) return;
+      var it = items.filter(function(x){ return x.id === editTargetId; })[0];
+      if (!it) return;
+
+      if (!it.qty || !/^\d/.test(it.qty)) {
+        toast("수량이 등록되지 않아 부분사용을 기록할 수 없어요");
+        closeEditSheet();
+        return;
+      }
+
+      var result = subtractQty(it.qty, usedInput);
+      if (!result) {
+        var unitHint = it.qty.replace(/^[\d.]+\s*/, "");
+        toast("단위를 맞춰주세요 (예: " + unitHint + ")");
+        el.editQtyInput.focus();
+        return;
+      }
+
+      var wg = weightFromUsed(result.usedNum, result.unit);
+      var log = loadLog();
+
+      if (result.remaining === null) {
+        items = items.filter(function(x){ return x.id !== editTargetId; });
+        log.push({ date: toISO(new Date()), name: it.name, act: "cook" });
+        saveLog(log);
+        renderAll();
+        closeEditSheet();
+        toast(emojiFor(it.name) + " " + it.name + " 전량 사용 — 재고에서 제거했어요");
+      } else {
+        items = items.map(function(x){
+          return x.id === editTargetId ? Object.assign({}, x, { qty: result.remaining }) : x;
+        });
+        log.push({ date: toISO(new Date()), name: it.name, act: "partial", usedQty: usedInput, weightG: wg });
+        saveLog(log);
+        save();
+        renderAll();
+        closeEditSheet();
+        toast(emojiFor(it.name) + " " + usedInput + " 사용 → 남은 수량: " + result.remaining);
+      }
     });
 
     /* 소비기한/유통기한 모드 토글 */
