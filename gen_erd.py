@@ -70,8 +70,8 @@ TABLES = {
         ("id","PK",False),("name",None,False),("category_id","FK",False),
         ("default_unit",None,False),("weight_per_unit_g",None,False),
         ("carbon_per_100g",None,False),
-        ("shelf_days",None,True),       # v0.6 신규
-        ("expiry_ext_days",None,True),  # v0.6 신규
+        ("shelf_days",None,False),
+        ("expiry_ext_days",None,False),
         ("created_at",None,False),
     ],
     "recipe_ingredients": [
@@ -155,7 +155,6 @@ def draw_legend(draw, x, y):
         (PK_BG,PK_FG,"PK","기본 키 (Primary Key)"),
         (FK_BG,FK_FG,"FK","외래 키 (Foreign Key)"),
         (FKN_BG,FKN_FG,"FK?","NULL 허용 외래 키"),
-        (NEW_BG,NEW_FG,"NEW","v0.6 신규 컬럼"),
     ]
     draw.rounded_rectangle([x-8,y-8,x+218,y+len(items)*22+6], radius=6, fill=LEGEND_BG, outline=BORDER)
     for i,(bg,fg,bdg,label) in enumerate(items):
@@ -181,7 +180,7 @@ RELS = [
 img  = Image.new("RGB",(IMG_W,IMG_H),BG)
 draw = ImageDraw.Draw(img)
 
-draw.text((IMG_W//2,12),"fridge.ai — ERD v0.6",font=F_TITLE,fill=HDR_BG,anchor="mt")
+draw.text((IMG_W//2,12),"fridge.ai — ERD",font=F_TITLE,fill=HDR_BG,anchor="mt")
 
 for ft,fi,tt,ti,dashed in RELS:
     fox,foy=POSITIONS[ft]; tox,toy=POSITIONS[tt]
@@ -194,7 +193,7 @@ for name,(ox,oy) in POSITIONS.items():
     draw_table(draw,name,ox,oy)
 
 draw_legend(draw, IMG_W-238, IMG_H-108)
-draw.text((8,IMG_H-14),"fridge.ai ERD v0.6  ·  2026-06-18",font=F_VER,fill="#7aaa7a")
+draw.text((8,IMG_H-14),"fridge.ai ERD  ·  2026-06-19",font=F_VER,fill="#7aaa7a")
 
 out = r"C:\Users\tnals\fridge.ai\erd.jpg"
 img.save(out,"JPEG",quality=95)

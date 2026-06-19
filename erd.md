@@ -1,8 +1,9 @@
 # fridge.ai — ERD & Query Definition
 
-- **문서 버전:** 0.6
-- **작성일:** 2026-06-18
-- **상태:** 기획 확정 (소비기한 기능 반영 — shelf_days·expiry_ext_days 컬럼 추가, expires_at 소비기한 기준으로 전환)
+- **문서 버전:** 0.7
+- **작성일:** 2026-06-14
+- **갱신일:** 2026-06-19
+- **상태:** MVP 완성 (Demo Day 반영 — partial 소진 타입 결정, 앱 구현 현황 동기화)
 
 ---
 
@@ -142,7 +143,7 @@
 | inventory_id | INT FK → user_inventory | |
 | ingredient_id | INT FK → ingredients | 리포트 집계용 비정규화 |
 | recipe_id | INT FK → recipes NULL | 참고한 레시피 (없으면 NULL) |
-| type | ENUM('cooked','wasted') | |
+| type | ENUM('cooked','wasted') | 앱 레이어에서는 'partial'(부분사용) act 추가 사용 — DB ENUM 확장은 Phase 2 예정 (§결정 사항 참고) |
 | quantity_used | DECIMAL(8,2) | |
 | unit | VARCHAR(20) | |
 | weight_g | DECIMAL(10,2) | quantity × weight_per_unit_g |
@@ -312,6 +313,7 @@ ON DUPLICATE KEY UPDATE requested_at = NOW();
 | shelf_days | ingredients 컬럼 | 재료 추가 시 소비기한 자동완성 (농진청·식약처 기준) |
 | expiry_ext_days | ingredients 컬럼 (0=미지원) | 유통기한 입력 시 소비기한 자동 변환 — 식약처 소비기한 참고값 고시(2023) 기준, 신선식품은 법적 유통기한 없어 0 |
 | expires_at 의미 변경 | user_inventory: 유통기한→소비기한 | 앱이 소비기한 기준으로 D-day 계산하므로 저장 값도 소비기한으로 통일 |
+| consumption_logs.type 'partial' | MVP 앱 레이어에서만 분리, DB ENUM은 현행 유지 | 앱은 'partial'(부분사용) act를 별도 기록해 수량 차감·리포트 반영에 활용. DB는 'cooked'/'wasted' ENUM 유지 — 부분사용 이력은 앱 localStorage에서 관리하고, Phase 2 백엔드 전환 시 ENUM에 'partial' 추가 예정 |
 
 ---
 
@@ -325,6 +327,7 @@ ON DUPLICATE KEY UPDATE requested_at = NOW();
 | 0.4 | 2026-06-16 | demo.sql v0.3 동기화 — 카테고리 10종·재료 40종·레시피 10종 시드 추가, 스코어 공식 app.js 완전 일치(urgentRatio/completeness/absBonus/seaRatio), COOKRCP01 연동 결정 기재, Q2 YouTube검색→레시피추천 교체, Q8 레시피 참고 빈도 쿼리 추가 |
 | 0.5 | 2026-06-17 | 스코어링 공식 개정 — absBonus 기준을 전체 매칭 수에서 임박·주의 재료 절대 개수로 변경, 가중치 재조정(35/15/40/10), 재고 날짜 CURDATE() 상대값으로 전환 |
 | 0.6 | 2026-06-18 | 소비기한 기능 반영 — ingredients에 shelf_days·expiry_ext_days 컬럼 추가, user_inventory.expires_at 설명 소비기한으로 변경 |
+| 0.7 | 2026-06-19 | Demo Day 동기화 — consumption_logs.type 'partial' 결정 사항 추가 (DB 현행 유지, Phase 2 확장 예정), 헤더 갱신일 추가 |
 
 ---
 
