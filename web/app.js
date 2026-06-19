@@ -680,18 +680,12 @@
     var co2        = (wasteG * 0.00087).toFixed(1);     /* 음식물 폐기 CO₂ 0.87kg/kg */
     var water      = Math.round(wasteG * 0.2);          /* 절약 물 0.2L/g */
 
-    /* ── 뱃지 ── */
-    var badge = saved >= 25 ? { e: "🏆", t: "냉장고 마스터" }
-              : saved >= 15 ? { e: "🌿", t: "환경 지킴이" }
-              : saved >= 7  ? { e: "🌱", t: "새싹 절약가" }
-              :               { e: "🥕", t: "첫 걸음" };
 
     /* ── 히어로 ── */
     var wasteStr = wasteG >= 1000 ? (wasteG / 1000).toFixed(1) + "kg" : wasteG + "g";
     set("rpHeroSaved", saved);
     set("rpWasteG",    wasteStr);
     set("rpBags",      bags + "장");
-    set("rpBadgeChip", badge.e + " " + badge.t);
 
     /* ── 수치 카드 ── */
     set("rpEnvCost",   "₩" + envCost.toLocaleString());

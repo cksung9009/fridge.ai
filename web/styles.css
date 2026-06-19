@@ -450,11 +450,6 @@ h1, h2, h3 { letter-spacing: -0.02em; }
   margin-bottom: 6px;
 }
 .rp-hero-label { font-size: 0.86rem; font-weight: 700; opacity: 0.88; }
-.rp-badge-chip {
-  font-size: 0.78rem; font-weight: 800;
-  background: rgba(255,255,255,0.22);
-  border-radius: 999px; padding: 4px 11px;
-}
 .rp-hero-count { display: flex; align-items: baseline; gap: 6px; margin: 2px 0 10px; }
 .rp-hero-num { font-size: 4.2rem; font-weight: 800; line-height: 1; }
 .rp-hero-unit { font-size: 1.4rem; font-weight: 700; opacity: 0.85; }
