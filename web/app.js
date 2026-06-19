@@ -77,27 +77,84 @@
   }
 
   /* ---- 소비 로그 ---- */
-  var LOG_KEY = "fridge.ai.log.v1";
+  var LOG_KEY = "fridge.ai.log.v2";
   function loadLog() { try { return JSON.parse(localStorage.getItem(LOG_KEY) || "[]"); } catch(e) { return []; } }
   function saveLog(log) { try { localStorage.setItem(LOG_KEY, JSON.stringify(log)); } catch(e) {} }
 
   function seedLog() {
     if (loadLog().length > 0) return;
-    var base = new Date(TODAY);
-    var names = [
-      "달걀","두부","시금치","대파","닭가슴살","콩나물","양파","표고버섯",
-      "오이","고등어","새우","돼지고기(삼겹살)","당근","애호박","배추",
-      "달걀","대파","두부","시금치","양파","닭가슴살"
+    /* 2~3인 가구 30일 사용 이력 시뮬레이션 (기준일 2026-06-19) */
+    var log = [
+      /* ── 5월 3주차 ── */
+      { date:"2026-05-20", name:"달걀",               act:"cook" },
+      { date:"2026-05-20", name:"대파",               act:"cook" },
+      { date:"2026-05-21", name:"두부",               act:"cook" },
+      { date:"2026-05-21", name:"시금치",             act:"cook" },
+      { date:"2026-05-22", name:"닭가슴살",           act:"cook" },
+      { date:"2026-05-22", name:"콩나물",             act:"cook" },
+      { date:"2026-05-24", name:"달걀",               act:"cook" },
+      { date:"2026-05-24", name:"애호박",             act:"cook" },
+      { date:"2026-05-25", name:"새우",               act:"cook" },
+      { date:"2026-05-25", name:"양파",               act:"partial", usedQty:"2개",   weightG:400 },
+      /* ── 5월 4주차 ── */
+      { date:"2026-05-26", name:"돼지고기(삼겹살)",   act:"cook" },
+      { date:"2026-05-26", name:"대파",               act:"cook" },
+      { date:"2026-05-27", name:"달걀",               act:"cook" },
+      { date:"2026-05-27", name:"두부",               act:"cook" },
+      { date:"2026-05-27", name:"브로콜리",           act:"discard" },
+      { date:"2026-05-28", name:"애호박",             act:"cook" },
+      { date:"2026-05-28", name:"된장",               act:"partial", usedQty:"50g",   weightG:50  },
+      { date:"2026-05-29", name:"고등어",             act:"cook" },
+      { date:"2026-05-29", name:"무",                 act:"partial", usedQty:"400g",  weightG:400 },
+      { date:"2026-05-30", name:"바나나",             act:"cook" },
+      { date:"2026-05-30", name:"우유",               act:"partial", usedQty:"200mL", weightG:200 },
+      { date:"2026-05-31", name:"닭가슴살",           act:"cook" },
+      { date:"2026-05-31", name:"당근",               act:"partial", usedQty:"1개",   weightG:120 },
+      /* ── 6월 1주차 ── */
+      { date:"2026-06-02", name:"달걀",               act:"cook" },
+      { date:"2026-06-02", name:"오징어",             act:"cook" },
+      { date:"2026-06-02", name:"콩나물",             act:"cook" },
+      { date:"2026-06-03", name:"두부",               act:"cook" },
+      { date:"2026-06-03", name:"대파",               act:"cook" },
+      { date:"2026-06-05", name:"소고기(불고기용)",   act:"cook" },
+      { date:"2026-06-05", name:"양파",               act:"partial", usedQty:"2개",   weightG:400 },
+      { date:"2026-06-06", name:"시금치",             act:"cook" },
+      { date:"2026-06-06", name:"달걀",               act:"cook" },
+      { date:"2026-06-07", name:"새우",               act:"cook" },
+      { date:"2026-06-07", name:"달걀",               act:"partial", usedQty:"3개",   weightG:180 },
+      { date:"2026-06-08", name:"고등어",             act:"cook" },
+      { date:"2026-06-08", name:"표고버섯",           act:"cook" },
+      /* ── 6월 2주차 ── */
+      { date:"2026-06-09", name:"돼지고기(불고기용)", act:"cook" },
+      { date:"2026-06-09", name:"깻잎",               act:"cook" },
+      { date:"2026-06-10", name:"달걀",               act:"cook" },
+      { date:"2026-06-10", name:"토마토",             act:"cook" },
+      { date:"2026-06-11", name:"닭볶음탕용",         act:"cook" },
+      { date:"2026-06-11", name:"감자",               act:"partial", usedQty:"3개",   weightG:450 },
+      { date:"2026-06-11", name:"당근",               act:"partial", usedQty:"1개",   weightG:120 },
+      { date:"2026-06-12", name:"두부",               act:"cook" },
+      { date:"2026-06-12", name:"대파",               act:"cook" },
+      { date:"2026-06-13", name:"새우",               act:"cook" },
+      { date:"2026-06-13", name:"파프리카",           act:"cook" },
+      { date:"2026-06-14", name:"달걀",               act:"cook" },
+      { date:"2026-06-14", name:"상추",               act:"cook" },
+      { date:"2026-06-15", name:"오이",               act:"cook" },
+      { date:"2026-06-15", name:"고춧가루",           act:"partial", usedQty:"20g",   weightG:20  },
+      /* ── 6월 3주차 (이번 주) ── */
+      { date:"2026-06-16", name:"닭가슴살",           act:"cook" },
+      { date:"2026-06-16", name:"브로콜리",           act:"cook" },
+      { date:"2026-06-17", name:"달걀",               act:"cook" },
+      { date:"2026-06-17", name:"팽이버섯",           act:"cook" },
+      { date:"2026-06-18", name:"돼지고기(삼겹살)",   act:"partial", usedQty:"250g",  weightG:250 },
+      { date:"2026-06-18", name:"상추",               act:"cook" },
+      { date:"2026-06-19", name:"두부",               act:"partial", usedQty:"반모",  weightG:150 },
+      { date:"2026-06-19", name:"달걀",               act:"cook" },
     ];
-    var log = names.map(function(name, i) {
-      var d = new Date(base); d.setDate(d.getDate() - (21 - i));
-      return { date: toISO(d), name: name, act: i % 8 === 0 ? "discard" : "cook" };
-    });
     saveLog(log);
   }
 
   /* ---- 상태 ---- */
-  var STORE_KEY = "fridge.ai.items.v4";
+  var STORE_KEY = "fridge.ai.items.v5";
   var items = load();
   var activeCat = "전체";
   var searchText = "";
