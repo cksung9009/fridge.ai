@@ -375,6 +375,35 @@ h1, h2, h3 { letter-spacing: -0.02em; }
 .si-sub { font-size: 0.8rem; color: var(--ink-soft); }
 .si-right { display: flex; flex-direction: column; align-items: flex-end; gap: 7px; }
 .si-actions { display: flex; gap: 6px; }
+
+/* ── 같은 재료 묶음 그룹 ── */
+.stock-group {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-md);
+  border: 1.5px solid var(--green-300);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.stock-group .stock-item {
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+}
+.stock-group .stock-item:first-child { border-radius: var(--r-md) var(--r-md) 0 0; }
+.stock-group .stock-item:last-child  { border-radius: 0 0 var(--r-md) var(--r-md); }
+.stock-group .si-sibling {
+  background: var(--green-100);
+  border-top: 1px dashed var(--green-300);
+}
+.si-branch {
+  font-size: 1rem;
+  color: var(--green-600);
+  display: block;
+  text-align: center;
+  line-height: 44px;
+}
+
 .mini-btn {
   font-size: 0.74rem;
   font-weight: 700;

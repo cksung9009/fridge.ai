@@ -561,10 +561,18 @@
 
     renderStatusChips();
     el.stockEmpty.hidden = list.length > 0;
-    el.stockList.innerHTML = list.map(function(it) {
+
+    // 같은 재료끼리 묶기 (그룹 순서는 가장 이른 소비기한 기준)
+    var seen = {}, groupOrder = [], groups = {};
+    list.forEach(function(it) {
+      if (!seen[it.name]) { seen[it.name] = true; groupOrder.push(it.name); groups[it.name] = []; }
+      groups[it.name].push(it);
+    });
+
+    function itemHtml(it, isSibling) {
       var d = ddayOf(it.expiry);
-      return '<div class="stock-item" data-id="' + it.id + '">'
-        + '<div class="si-emoji">' + emojiFor(it.name) + '</div>'
+      return '<div class="stock-item' + (isSibling ? ' si-sibling' : '') + '" data-id="' + it.id + '">'
+        + '<div class="si-emoji">' + (isSibling ? '<span class="si-branch">└</span>' : emojiFor(it.name)) + '</div>'
         + '<div class="si-body">'
         + '<div class="si-name">' + esc(it.name) + '</div>'
         + '<div class="si-sub">' + esc(it.cat) + ' · ' + esc(it.qty || "-") + '</div>'
@@ -576,6 +584,14 @@
         + '<button class="mini-btn edit-qty" data-act="editqty" data-id="' + it.id + '">수량수정</button>'
         + '<button class="mini-btn" data-act="trash" data-id="' + it.id + '">폐기</button>'
         + '</div></div></div>';
+    }
+
+    el.stockList.innerHTML = groupOrder.map(function(name) {
+      var grp = groups[name];
+      if (grp.length === 1) return itemHtml(grp[0], false);
+      return '<div class="stock-group">'
+        + grp.map(function(it, i) { return itemHtml(it, i > 0); }).join("")
+        + '</div>';
     }).join("");
   }
 
@@ -832,8 +848,32 @@
     }).join("");
   }
 
+  function mergeQty(a, b) {
+    if (!a) return b;
+    if (!b) return a;
+    var mA = a.match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
+    var mB = b.match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
+    if (mA && mB && mA[2] === mB[2]) {
+      var sum = parseFloat(mA[1]) + parseFloat(mB[1]);
+      var num = sum % 1 === 0 ? String(Math.round(sum)) : String(sum);
+      return num + (mA[2] ? mA[2] : "");
+    }
+    return a + " + " + b;
+  }
+
   function addItem(name, cat, qty, expiry) {
-    items.push({ id: uid(), name: name.trim(), cat: cat, qty: qty.trim(), expiry: expiry });
+    var trimName = name.trim();
+    var trimQty  = qty.trim();
+    var sameSlot = items.filter(function(x){ return x.name === trimName && x.expiry === expiry; });
+    if (sameSlot.length > 0) {
+      var targetId = sameSlot[0].id;
+      var merged   = mergeQty(sameSlot[0].qty, trimQty);
+      items = items.map(function(x){
+        return x.id === targetId ? Object.assign({}, x, { qty: merged }) : x;
+      });
+    } else {
+      items.push({ id: uid(), name: trimName, cat: cat, qty: trimQty, expiry: expiry });
+    }
     renderAll();
   }
 
@@ -1018,10 +1058,14 @@
         el.inSellBy.focus();
         return;
       }
-      addItem(name, MASTER[name].cat, el.inQty.value || "", el.inExpiry.value);
+      var expiry = el.inExpiry.value;
+      var isMerge = items.some(function(x){ return x.name === name && x.expiry === expiry; });
+      addItem(name, MASTER[name].cat, el.inQty.value || "", expiry);
       closeSheet();
       switchView("stock");
-      toast(emojiFor(name) + " " + name + " 추가 완료!");
+      toast(isMerge
+        ? emojiFor(name) + " " + name + " 수량 합산됐어요!"
+        : emojiFor(name) + " " + name + " 추가 완료!");
     });
 
     /* ESC */
