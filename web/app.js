@@ -682,25 +682,39 @@
     for (var i = 6; i >= 0; i--) {
       var d = new Date(TODAY); d.setDate(d.getDate() - i);
       var iso = toISO(d);
-      var cnt = log.filter(function(e){ return e.date === iso && (e.act === "cook" || e.act === "partial"); }).length;
-      dayCounts.push({ label: dayNames[d.getDay()], cnt: cnt });
+      var cookC = log.filter(function(e){ return e.date === iso && e.act === "cook"; }).length;
+      var partC = log.filter(function(e){ return e.date === iso && e.act === "partial"; }).length;
+      dayCounts.push({ label: dayNames[d.getDay()], cookCnt: cookC, partCnt: partC, cnt: cookC + partC, isToday: i === 0 });
     }
     var maxCnt = Math.max.apply(null, dayCounts.map(function(d){ return d.cnt; })) || 1;
+    var hasData = dayCounts.some(function(d){ return d.cnt > 0; });
+    var daysEl  = $("#rpBarDays");
 
-    var daysEl = $("#rpBarDays");
-    el.reportBars.innerHTML = dayCounts.map(function(d){
-      var pct = Math.round((d.cnt / maxCnt) * 100) || 6;
-      return '<div class="bar" style="height:0" data-h="' + pct + '"></div>';
-    }).join("");
-    if (daysEl) daysEl.innerHTML = dayCounts.map(function(d){
-      return '<span>' + d.label + '</span>';
-    }).join("");
-
-    requestAnimationFrame(function() {
-      el.reportBars.querySelectorAll(".bar").forEach(function(b){
-        b.style.height = b.dataset.h + "%";
+    if (!hasData) {
+      el.reportBars.innerHTML = '<div class="bar-empty">이번 주 아직 기록이 없어요 🌱</div>';
+      if (daysEl) daysEl.innerHTML = "";
+    } else {
+      var MAX_H = 90;
+      el.reportBars.innerHTML = dayCounts.map(function(d) {
+        var h = d.cnt > 0 ? Math.max(6, Math.round((d.cnt / maxCnt) * MAX_H)) : 4;
+        var segs = "";
+        if (d.cookCnt > 0) segs += '<div class="seg seg-cook" style="flex:' + d.cookCnt + '"></div>';
+        if (d.partCnt > 0) segs += '<div class="seg seg-partial" style="flex:' + d.partCnt + '"></div>';
+        if (!segs) segs = '<div class="seg seg-cook" style="flex:1;opacity:0.15"></div>';
+        return '<div class="bar-col' + (d.isToday ? ' is-today' : '') + '">'
+          + '<span class="bar-num">' + (d.cnt > 0 ? d.cnt : '') + '</span>'
+          + '<div class="bar" style="height:0" data-h="' + h + '">' + segs + '</div>'
+          + '</div>';
+      }).join("");
+      if (daysEl) daysEl.innerHTML = dayCounts.map(function(d) {
+        return '<span' + (d.isToday ? ' class="is-today"' : '') + '>' + d.label + '</span>';
+      }).join("");
+      requestAnimationFrame(function() {
+        el.reportBars.querySelectorAll(".bar").forEach(function(b) {
+          b.style.height = b.dataset.h + "px";
+        });
       });
-    });
+    }
 
     function set(id, val) { var el = $("#" + id); if (el) el.textContent = val; }
   }
