@@ -600,7 +600,7 @@
     var saved   = cooked.length;
     var wasteG  = saved * 150;                         /* 재료당 평균 150g */
     var bags    = Math.floor(wasteG / 500);            /* 3L 봉투 1장 = 500g */
-    var money   = saved * 2500;                        /* 재료당 평균 ₩2,500 */
+    var envCost = Math.round(wasteG * 3);              /* 3,000원/kg — 사회적 처리비용(수거+처리+온실가스) */
     var co2     = (saved * 0.13).toFixed(1);           /* 재료당 CO₂ 0.13kg */
     var water   = saved * 30;                          /* 재료당 물 30L */
 
@@ -618,7 +618,7 @@
     set("rpBadgeChip", badge.e + " " + badge.t);
 
     /* ── 수치 카드 ── */
-    set("rpSaveMoney", "₩" + money.toLocaleString());
+    set("rpEnvCost",   "₩" + envCost.toLocaleString());
     set("rpCook",      cooked.length + "회");
     set("rpCO2",       co2 + "kg");
     set("rpWater",     water + "L");
